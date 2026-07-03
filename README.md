@@ -119,7 +119,7 @@ npx wrangler secret put WECHAT_ID   # 值=你的微信号；不配则 offer_wech
 
 > ⚠️ 本仓库**不含** `resume.pdf` / `resume-en.pdf`（已 gitignore）——否则任何人能从 GitHub raw 直接下载，绕过上面的邮箱门控。fork 后按下面步骤**自己生成**，PDF 随部署上线、不进公开仓库。`brief.pdf`（人人可得的一页简介）随仓库提供作示例。
 
-PDF 源文件在 `pdf-src/`（resume.html / resume-en.html / brief.html），改完用 Chrome 重新出 PDF：
+PDF 源文件在 `pdf-src/`（本仓库随附 `brief.html` 作示例；完整简历源 `resume.html` / `resume-en.html` 同 PDF 一样不进公开仓库，fork 后照 `brief.html` 的结构自建），改完用 Chrome 重新出 PDF：
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \

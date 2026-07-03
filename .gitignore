@@ -15,6 +15,9 @@ resume-base-php-detail.md
 # （brief.pdf 是人人可得的一页简介，保留作模板示例）
 worker/assets/resume.pdf
 worker/assets/resume-en.pdf
+# 简历的 HTML 源（同为完整履历，能直接渲染成 PDF）也不进公开仓库；brief.html 保留作示例
+pdf-src/resume.html
+pdf-src/resume-en.html
 
 # 本地 AI 工具产物 / vendored skill（不进开源仓库）
 .seek/
