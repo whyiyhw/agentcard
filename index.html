@@ -1,0 +1,670 @@
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!-- ═══════════════════════════════════════════════════════════════
+     模板指南（fork 的人看这里）：
+     · 内容区 = <title>/<meta> · hero 文案 · WORKS 作品卡 · capabilities · contact
+       · JS 里的 WORKS 数组 / scripted() 离线应答 / AI_ENDPOINT
+     · 引擎区 = 终端引擎 JS（add/type/run/boot/流式/成就），无需改动
+     · AI 人设与事实在 worker/config.js，不在这个文件里
+     ═══════════════════════════════════════════════════════════════ -->
+<title>whyiyhw.sh · 后端 / AI / IoT 工程师</title>
+<meta name="description" content="whyiyhw — 后端 / 全栈 / AI / IoT 工程师。一个可玩的 AI 终端个人站：打命令、问 AI、看作品(seek / chatgpt-wechat)。" />
+<meta name="theme-color" content="#08090c" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2308090c'/%3E%3Cpath d='M14 18 30 32 14 46' fill='none' stroke='%23ffb020' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3Crect x='36' y='39' width='16' height='8' rx='1.5' fill='%233fe0ea'/%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="/icon-180.png" />
+
+<!-- 分享卡片（微信 / 朋友圈 / Twitter 等抓 og 标签） -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="whyiyhw.sh" />
+<meta property="og:title" content="whyiyhw.sh · 后端 / AI / IoT 工程师" />
+<meta property="og:description" content="一个可玩的 AI 终端个人站：打命令、问 AI、看作品。" />
+<meta property="og:url" content="https://ask.whyiyhw.com/" />
+<meta property="og:image" content="https://ask.whyiyhw.com/og.png" />
+<meta itemprop="name" content="whyiyhw.sh · 后端 / AI / IoT 工程师" />
+<meta itemprop="image" content="https://ask.whyiyhw.com/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+
+<script>
+  (function () {
+    try {
+      var l = localStorage.getItem("lang");
+      var nl = ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
+      if (!l) l = nl.indexOf("zh") === 0 ? "zh" : "en";
+      if (l === "en") document.documentElement.classList.add("lang-en");
+      document.documentElement.lang = l === "en" ? "en" : "zh-CN";
+      var t = localStorage.getItem("theme");
+      if (t === "light") document.documentElement.classList.add("light");
+    } catch (e) {}
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=VT323&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   whyiyhw.sh — a playable AI terminal
+   amber + cyan, near-black, monospace, CRT. dark default + light.
+   ============================================================ */
+:root{
+  --bg:#08090c; --bg2:#0c0e13; --panel:#0f1218; --panel2:#141821;
+  --text:#e7e9ee; --muted:#8b93a1; --dim:#5b6473;
+  --amber:#ffb020; --amber2:#ffcf6b; --cyan:#3fe0ea; --green:#3ecf8e; --red:#ff5f57; --yellow:#febc2e;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.16);
+  --glow:rgba(255,176,32,.55);
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,"PingFang SC","Microsoft YaHei",monospace;
+  --pix:"VT323","JetBrains Mono",monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+  color-scheme:dark;
+}
+:root.light{
+  --bg:#efe9dd; --bg2:#f4efe6; --panel:#fbf8f1; --panel2:#f2ece0;
+  --text:#221d15; --muted:#5c5445; --dim:#8a8172;
+  --amber:#b8730b; --amber2:#a65f00; --cyan:#0e7c86; --green:#2f8f63;
+  --line:rgba(30,20,10,.12); --line2:rgba(30,20,10,.22);
+  --glow:rgba(184,115,11,.4);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:15px;line-height:1.65;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+::selection{background:rgba(255,176,32,.25);color:var(--amber2)}
+.en{display:none}
+:root.lang-en .en{display:inline}
+:root.lang-en .zh{display:none}
+.blk-en{display:none}
+:root.lang-en .blk-en{display:block}
+:root.lang-en .blk-zh{display:none}
+
+/* ambient + CRT */
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(60rem 44rem at 50% -12%,rgba(255,176,32,.10),transparent 60%),
+             radial-gradient(48rem 40rem at 92% 8%,rgba(63,224,234,.07),transparent 55%)}
+.scan{position:fixed;inset:0;z-index:60;pointer-events:none;opacity:.35;
+  background:repeating-linear-gradient(to bottom,rgba(255,255,255,.025) 0 1px,transparent 1px 3px);mix-blend-mode:overlay}
+:root.light .scan{opacity:.12}
+
+.wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+
+/* top controls */
+.controls{position:fixed;top:16px;right:18px;z-index:70;display:flex;gap:8px}
+.ctl{display:inline-flex;align-items:center;gap:2px;font-family:var(--mono);font-size:12px;font-weight:500;
+  background:var(--panel);border:1px solid var(--line2);border-radius:8px;overflow:hidden}
+.ctl button{background:none;border:0;color:var(--muted);cursor:pointer;padding:7px 10px;font:inherit;transition:background .15s,color .15s}
+.ctl button:hover{color:var(--text)}
+.ctl button.on{background:var(--cyan);color:#04121a}
+.ctl.single button{padding:7px 9px}
+:root.light .ctl button.on{color:#fff}
+
+/* hero */
+.hero{min-height:min(100dvh,980px);display:flex;flex-direction:column;justify-content:center;padding:96px 0 60px;position:relative;z-index:1}
+.led-wrap{display:flex;justify-content:center;margin-bottom:8px}
+canvas#led{display:block;max-width:100%;filter:drop-shadow(0 0 18px var(--glow));animation:flick 5s infinite}
+@keyframes flick{0%,97%,100%{opacity:1}98%{opacity:.82}99%{opacity:.95}}
+.tag{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.02em;margin:4px 0 26px}
+.tag b{color:var(--amber)}
+.nw{white-space:nowrap}
+
+/* terminal */
+.term{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line2);border-radius:12px;
+  box-shadow:0 30px 80px -40px rgba(0,0,0,.9),inset 0 1px 0 rgba(255,255,255,.04);overflow:hidden}
+.tbar{display:flex;align-items:center;gap:8px;padding:11px 14px;background:rgba(255,255,255,.03);border-bottom:1px solid var(--line)}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.r{background:var(--red)}.dot.y{background:var(--yellow)}.dot.g{background:var(--green)}
+.ttitle{margin-left:auto;margin-right:auto;transform:translateX(-24px);color:var(--dim);font-size:12.5px}
+.tbody{padding:18px 18px 6px;height:min(52vh,440px);overflow-y:auto;font-size:14px;scroll-behavior:smooth}
+.tbody::-webkit-scrollbar{width:8px}.tbody::-webkit-scrollbar-thumb{background:var(--line2);border-radius:4px}
+.line{white-space:pre-wrap;word-break:break-word;margin:1px 0}
+.c-amber{color:var(--amber)}.c-cyan{color:var(--cyan)}.c-green{color:var(--green)}.c-muted{color:var(--muted)}.c-dim{color:var(--dim)}
+.line b{color:var(--text);font-weight:700}
+.line a{color:var(--cyan);border-bottom:1px dotted var(--cyan)}
+.tin{display:flex;align-items:center;gap:8px;padding:8px 18px 16px;border-top:1px solid var(--line);transition:border-color .2s ease,box-shadow .2s ease}
+.tin:focus-within{border-top-color:var(--cyan);box-shadow:inset 0 1px 0 0 var(--cyan)}
+.tin .ps{color:var(--amber);font-weight:700;white-space:nowrap}
+.tin input{flex:1;background:none;border:0;outline:0;color:var(--text);font-family:var(--mono);font-size:14px;caret-color:var(--cyan)}
+.tin input::placeholder{color:var(--dim)}
+.tstat{display:flex;flex-wrap:wrap;gap:6px 16px;padding:8px 16px;background:rgba(255,255,255,.02);border-top:1px solid var(--line);font-size:12px;color:var(--dim)}
+.tstat .sp{color:var(--muted)}.tstat b{color:var(--cyan);font-weight:500}
+.tstat .rt{margin-left:auto}
+.cursor{display:inline-block;width:8px;height:1.05em;background:var(--cyan);vertical-align:text-bottom;animation:blink 1.05s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.hint{text-align:center;color:var(--dim);font-size:12.5px;margin-top:16px}
+.hint code{color:var(--amber);background:rgba(255,176,32,.1);padding:1px 6px;border-radius:5px;cursor:pointer}
+.tin:focus-within .cursor{opacity:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:2px 18px 14px}
+.chip{font-family:var(--mono);font-size:12.5px;color:var(--cyan);background:rgba(63,224,234,.08);background:color-mix(in srgb,var(--cyan) 8%,transparent);border:1px solid var(--line);border:1px solid color-mix(in srgb,var(--cyan) 35%,transparent);border-radius:6px;padding:7px 12px;cursor:pointer;transition:background .15s ease,border-color .15s ease;line-height:1.2}
+.chip:hover{background:color-mix(in srgb,var(--cyan) 16%,transparent);border-color:var(--cyan)}
+.chip:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* readable sections */
+section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--line)}
+.eyebrow{color:var(--amber);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px}
+.h2{font-family:var(--mono);font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:700;letter-spacing:-.01em;margin:0 0 8px}
+.sub{color:var(--muted);margin:0 0 40px;max-width:60ch}
+
+.works{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.work{display:block;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:22px;transition:transform .3s var(--ease),border-color .3s,background .3s;position:relative;overflow:hidden}
+.work:hover{transform:translateY(-4px);border-color:var(--amber);background:var(--panel2)}
+.work.big{grid-column:span 2;display:grid;grid-template-columns:1.1fr 1fr;gap:24px;align-items:center}
+.work .tt{display:flex;align-items:center;gap:10px;font-size:1.15rem;font-weight:700}
+.work .badge{font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:999px;padding:2px 9px}
+.work .badge.star{color:var(--yellow);border-color:var(--yellow)}
+.work .d{color:var(--muted);font-size:14px;margin:12px 0 16px}
+.work .meta{display:flex;gap:14px;color:var(--dim);font-size:12.5px}
+.work .meta .go{color:var(--cyan)}
+.work .demo{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:14px;font-size:12.5px;color:var(--muted);min-height:120px}
+.work .demo .p{color:var(--amber)}
+.led-mini{font-family:var(--pix);font-size:34px;line-height:.8;color:var(--amber);text-shadow:0 0 12px var(--glow);letter-spacing:2px}
+.more{margin:18px 2px 0;color:var(--dim);font-size:13px}
+.more a{color:var(--cyan);border-bottom:1px dotted var(--cyan)}
+
+.caps{display:grid;gap:0}
+.cap{display:grid;grid-template-columns:220px 1fr;gap:28px;padding:30px 0;border-top:1px solid var(--line)}
+.cap:first-child{border-top:0;padding-top:0}
+.cap h3{margin:0;font-size:1.15rem;font-weight:700}
+.cap h3 .k{display:block;color:var(--amber);font-size:12px;letter-spacing:.1em;margin-bottom:6px}
+.cap .body{color:var(--muted)}
+.cap .tags{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.tag-c{font-size:12px;color:var(--muted);border:1px solid var(--line2);border-radius:6px;padding:2px 9px}
+.cap.iot h3 .k{color:var(--cyan)}
+.cap.iot .tag-c{border-color:rgba(63,224,234,.35);color:var(--cyan)}
+
+.clist{display:flex;flex-wrap:wrap;gap:12px}
+.clink{display:inline-flex;align-items:center;gap:9px;border:1px solid var(--line2);border-radius:999px;padding:11px 18px;font-size:14px;transition:border-color .2s,color .2s,transform .2s}
+.clink:hover{border-color:var(--amber);color:var(--amber);transform:translateY(-2px)}
+.clink .i{color:var(--amber)}
+
+.foot{border-top:1px solid var(--line);padding:28px 0;color:var(--dim);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+
+.rv{opacity:0;transform:translateY(20px);transition:opacity .7s var(--ease),transform .7s var(--ease)}
+.rv.in{opacity:1;transform:none}
+
+@media(max-width:820px){
+  .works{grid-template-columns:1fr}
+  .work.big{grid-template-columns:1fr;grid-column:auto} /* 单列时必须取消 span 2，否则会逼出隐式第二列 */
+  .cap{grid-template-columns:1fr;gap:10px}
+}
+@media(max-width:520px){ .wrap{padding:0 16px} .ttitle{display:none} .tbody{height:56vh}
+  .tstat{font-size:11px;gap:4px 12px;padding:8px 12px}
+  .tstat .rt{margin-left:0;flex-basis:100%} }
+@media(prefers-reduced-motion:reduce){*{animation:none!important}.rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}}
+</style>
+
+<div class="scan" aria-hidden="true"></div>
+<div class="controls">
+  <div class="ctl single"><button id="themeBtn" title="theme" aria-label="theme">◐</button></div>
+  <div class="ctl"><button id="enBtn" data-l="en">EN</button><button id="zhBtn" data-l="zh">中</button></div>
+</div>
+
+<!-- ===================== HERO / TERMINAL ===================== -->
+<header class="hero">
+  <div class="wrap">
+    <div class="led-wrap"><canvas id="led" aria-label="whyiyhw"></canvas></div>
+    <p class="tag">
+      <span class="zh">后端 · 全栈 · <b>AI 工程化</b> · <span class="nw"><b>IoT 硬件控制</b> · 8 年</span></span>
+      <span class="en">backend · full-stack · <b>AI engineering</b> · <span class="nw"><b>IoT hardware</b> · 8y</span></span>
+    </p>
+
+    <div class="term" id="term">
+      <div class="tbar">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="ttitle">whyiyhw@dev : ~/portfolio</span>
+      </div>
+      <div class="tbody" id="out"></div>
+      <div class="tin" id="inRow" style="display:none">
+        <span class="ps">whyiyhw@dev:~$</span>
+        <span class="cursor" aria-hidden="true"></span>
+        <input id="cmd" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="text" enterkeyhint="send"
+          data-ph-zh="打字聊天或输命令… 例：他会 Go 吗" data-ph-en="chat or type a command… e.g. can he do Go" />
+      </div>
+      <div class="chips" id="chips">
+        <button class="chip" type="button" aria-label="ask about his IoT work" data-q-zh="他 IoT 做过啥" data-q-en="what has he built in IoT?"><span class="zh">他 IoT 做过啥</span><span class="en">his IoT work</span></button>
+        <button class="chip" type="button" aria-label="is he a fit for my project" data-q-zh="他适合我的项目吗" data-q-en="is he a fit for my project?"><span class="zh">他适合我的项目吗</span><span class="en">is he a fit?</span></button>
+        <button class="chip" type="button" aria-label="list his work" data-q-zh="ls" data-q-en="ls"><span class="zh">看代表作 · ls</span><span class="en">see his work · ls</span></button>
+        <button class="chip" type="button" aria-label="can he do Go" data-q-zh="他会 Go 吗" data-q-en="can he do Go?"><span class="zh">他会 Go 吗</span><span class="en">can he do Go?</span></button>
+      </div>
+      <div class="tstat">
+        <span><span class="sp">turns</span> <b id="stTurns">0</b></span>
+        <span><span class="sp">cmds</span> <b id="stCmds">0</b></span>
+        <span><span class="sp">agent</span> <b id="stAgent">scripted</b></span>
+        <span><span class="sp">ach</span> <b id="stAch">0/11</b></span>
+        <span class="rt"><span class="sp">cache</span> <b>89.5%</b> 🌙 off-peak</span>
+      </div>
+    </div>
+    <p class="hint">
+      <span class="zh">真终端 + 在线 AI。试试 <code>help</code> · <code>iot</code> · <code>ls</code>，或直接问 <code>他适合我的项目吗</code></span>
+      <span class="en">A real terminal with a live AI. Try <code>help</code> · <code>iot</code> · <code>ls</code> — or just ask <code>is he a fit for my project</code></span>
+    </p>
+  </div>
+</header>
+
+<!-- ===================== WORKS ===================== -->
+<section id="works">
+  <div class="wrap">
+    <p class="eyebrow rv">// selected works</p>
+    <h2 class="h2 rv"><span class="zh">代表作</span><span class="en">Selected works</span></h2>
+    <p class="sub rv"><span class="zh">我不只写简历，我造东西。这些站本身就是作品。</span><span class="en">I don't just write resumes, I build things. These sites are the work.</span></p>
+    <div class="works">
+
+      <a class="work big rv" href="https://seek.whyiyhw.com" target="_blank" rel="noopener">
+        <div>
+          <div class="tt">seek <span class="badge">AI Agent CLI</span></div>
+          <div class="d"><span class="zh">仿 Claude Code 思路的本地编程 Agent 平台：plan 模式、子 Agent 团队、cron、记忆、MCP。单 Go 二进制，DeepSeek 原生。</span><span class="en">A local coding-agent platform inspired by Claude Code: plan mode, sub-agent teams, cron, memory, MCP. Single Go binary, DeepSeek-native.</span></div>
+          <div class="meta"><span>Go</span><span>DeepSeek</span><span class="go">seek.whyiyhw.com ↗</span></div>
+        </div>
+        <div class="demo">
+          <div class="led-mini">SEEK</div>
+          <div style="margin-top:10px"><span class="p">$</span> seek "refactor auth"</div>
+          <div class="c-muted">▸ read main.go</div>
+          <div class="c-muted">[agent] spawning subagent…</div>
+        </div>
+      </a>
+
+      <a class="work rv" href="https://github.com/whyiyhw/chatgpt-wechat" target="_blank" rel="noopener">
+        <div class="tt">chatgpt-wechat <span class="badge star">1.2k ★</span></div>
+        <div class="d"><span class="zh">在企业微信 / 微信里安全使用的 LLM 助手与客服，支持 Dify 工作流。</span><span class="en">An LLM assistant and support bot for WeChat / WeCom, with Dify workflow support.</span></div>
+        <div class="meta"><span>Go</span><span class="go">github ↗</span></div>
+      </a>
+
+      <a class="work rv" href="https://github.com/whyiyhw/gws" target="_blank" rel="noopener">
+        <div class="tt">gws</div>
+        <div class="d"><span class="zh">基于事件与切面思路的 WebSocket 框架，HTTP 请求转 WebSocket 消息。</span><span class="en">Event- and aspect-oriented WebSocket framework, HTTP-to-WebSocket forwarding.</span></div>
+        <div class="meta"><span>Go</span><span class="go">github ↗</span></div>
+      </a>
+
+    </div>
+    <p class="more rv"><span class="zh">更多在</span><span class="en">more on</span> <a href="https://github.com/whyiyhw" target="_blank" rel="noopener">github.com/whyiyhw ↗</a></p>
+  </div>
+</section>
+
+<!-- ===================== CAPABILITIES ===================== -->
+<section id="do">
+  <div class="wrap">
+    <p class="eyebrow rv">// what I do</p>
+    <h2 class="h2 rv"><span class="zh">我能帮你做什么</span><span class="en">What I can do</span></h2>
+    <div class="caps">
+      <div class="cap rv">
+        <h3><span class="k">01 · backend</span><span class="zh">可靠的后端系统</span><span class="en">Backends that last</span></h3>
+        <div>
+          <p class="body"><span class="zh">高并发、分布式、高可靠的服务与数据链路。分布式竞态与幂等是我的舒适区。</span><span class="en">High-concurrency, distributed, reliable services and data pipelines. Distributed races and idempotency are my comfort zone.</span></p>
+          <div class="tags"><span class="tag-c">Go</span><span class="tag-c">go-zero</span><span class="tag-c">Gin</span><span class="tag-c">MySQL</span><span class="tag-c">Redis</span><span class="tag-c">PHP</span></div>
+        </div>
+      </div>
+      <div class="cap rv">
+        <h3><span class="k">02 · AI</span><span class="zh">落地的 AI / LLM 工程</span><span class="en">AI that ships</span></h3>
+        <div>
+          <p class="body"><span class="zh">把 AI agent 落地到真实运营业务：抽取、Prompt 自动优化、评测与持续调优。seek 就是我造的 Agent 平台。</span><span class="en">Landing AI agents in real operations: extraction, prompt optimization, evals and continuous tuning. seek is my own agent platform.</span></p>
+          <div class="tags"><span class="tag-c">Python</span><span class="tag-c">DSPy</span><span class="tag-c">DeepSeek</span><span class="tag-c">Agent</span><span class="tag-c">json_schema</span></div>
+        </div>
+      </div>
+      <div class="cap iot rv">
+        <h3><span class="k">03 · IoT — 别人少有的</span><span class="zh">软硬件 / IoT 控制</span><span class="en">IoT & hardware control</span></h3>
+        <div>
+          <p class="body"><span class="zh">商用车 TBOX 车联网终端、蓝牙水控(淋浴 / 开水器)、门禁、电表。玩得转 MQTT、私有蓝牙协议、设备↔云↔端联动、离线二维码与计费退款。</span><span class="en">Commercial-vehicle TBOX telematics, Bluetooth water controllers (shower / boiler), access control, electricity meters. Fluent in MQTT, private BLE protocols, device↔cloud↔client, offline QR, billing and refunds.</span></p>
+          <div class="tags"><span class="tag-c">TBOX</span><span class="tag-c">MQTT</span><span class="tag-c">BLE</span><span class="zh tag-c">水控</span><span class="en tag-c">water ctrl</span><span class="zh tag-c">门禁</span><span class="en tag-c">access</span><span class="zh tag-c">电表</span><span class="en tag-c">meters</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CONTACT ===================== -->
+<section id="contact">
+  <div class="wrap">
+    <p class="eyebrow rv">// let's talk</p>
+    <h2 class="h2 rv"><span class="zh">有活儿？聊聊。</span><span class="en">Got something to build? Let's talk.</span></h2>
+    <p class="sub rv"><span class="zh">后端 / AI / IoT 的活儿都可以找我，兼职合作也欢迎。</span><span class="en">Backend, AI, or IoT work — freelance and collaboration welcome.</span></p>
+    <div class="clist rv">
+      <a class="clink" href="mailto:whyiyhw@outlook.com"><span class="i">✉</span> whyiyhw@outlook.com</a>
+      <a class="clink" href="https://github.com/whyiyhw" target="_blank" rel="noopener"><span class="i">◆</span> github.com/whyiyhw</a>
+      <a class="clink" href="https://blogxy.cn" target="_blank" rel="noopener"><span class="i">✎</span> blogxy.cn</a>
+      <span class="clink"><span class="i">✦</span> <span class="zh">微信 · 聊出合作意向后互加</span><span class="en">WeChat · shared once there's a fit</span></span>
+    </div>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;width:100%">
+    <span>© <span id="yr">2026</span> whyiyhw · built as a playable terminal
+      <span class="c-dim">· <span class="zh">对话会匿名记录，用于改进这个 agent</span><span class="en">chats are logged anonymously to improve this agent</span></span></span>
+    <span class="c-dim">type <span class="c-amber">help</span> ↑</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var root=document.documentElement;
+  var state={ lang: root.classList.contains("lang-en")?"en":"zh", turns:0, cmds:0, hist:[], hi:0 };
+
+  /* ---------- LED dot-matrix name ---------- */
+  function drawLED(){
+    var c=document.getElementById("led"); if(!c) return;
+    var ctx=c.getContext("2d"); var text="whyiyhw";
+    var dpr=Math.min(2,window.devicePixelRatio||1);
+    var host=c.parentElement.clientWidth||700;
+    var cssW=Math.min(host, 760);
+    var off=document.createElement("canvas"); var o=off.getContext("2d");
+    var F=170, font="700 "+F+'px "JetBrains Mono", monospace';
+    o.font=font; var tw=Math.ceil(o.measureText(text).width)+8; var th=Math.ceil(F*1.05);
+    off.width=tw; off.height=th; o.font=font; o.textBaseline="middle"; o.fillStyle="#fff"; o.fillText(text,4,th/2);
+    var data; try{ data=o.getImageData(0,0,tw,th).data; }catch(e){ c.replaceWith(Object.assign(document.createElement("div"),{className:"led-mini",textContent:"whyiyhw",style:"font-size:56px;text-align:center"})); return; }
+    var step=9, dots=[];
+    for(var y=0;y<th;y+=step){ for(var x=0;x<tw;x+=step){ if(data[(y*tw+x)*4+3]>110) dots.push([x,y]); } }
+    var scale=cssW/tw, cssH=th*scale;
+    c.style.width=cssW+"px"; c.style.height=cssH+"px"; c.width=cssW*dpr; c.height=cssH*dpr;
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cssW,cssH);
+    var amber=getComputedStyle(root).getPropertyValue("--amber").trim()||"#ffb020";
+    var d=Math.max(2.2, step*scale*0.78);
+    ctx.fillStyle=amber; ctx.shadowColor=amber; ctx.shadowBlur=step*scale*0.85;
+    for(var i=0;i<dots.length;i++){ ctx.fillRect(dots[i][0]*scale, dots[i][1]*scale, d, d); }
+  }
+
+  /* ---------- terminal ---------- */
+  var out=document.getElementById("out"), inRow=document.getElementById("inRow"), cmd=document.getElementById("cmd");
+  var T={ zh:{}, en:{} };
+  function L(zh,en){ return state.lang==="en"?en:zh; }
+  function esc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+  function add(html,cls){ var d=document.createElement("div"); d.className="line"+(cls?" "+cls:""); d.innerHTML=html; out.appendChild(d); out.scrollTop=out.scrollHeight; return d; }
+  function gap(){ add("&nbsp;"); }
+  function type(html,cls,speed,done){
+    var d=add("",cls); var i=0; var plain=html;
+    // strip simple tags for typing but keep them: type raw text, then set innerHTML at end for color words
+    var tmp=document.createElement("div"); tmp.innerHTML=html; var txt=tmp.textContent;
+    var timer=setInterval(function(){ i++; d.textContent=txt.slice(0,i); out.scrollTop=out.scrollHeight;
+      if(i>=txt.length){ clearInterval(timer); d.innerHTML=html; if(done)done(); } }, speed||14);
+  }
+
+  function setStat(){ document.getElementById("stTurns").textContent=state.turns;
+    document.getElementById("stCmds").textContent=state.cmds;
+    var ea=document.getElementById("stAch"); if(ea) ea.textContent=achCount()+"/"+ACH.length; }
+
+  /* ---------- achievements（只认玩家亲手操作，demo 演示不解锁）---------- */
+  var ACH=[
+    {id:"first_cmd", zh:"初来乍到 · 敲下第一条命令", en:"hello world · typed a command",   hz:"随便输一条命令",   he:"type any command"},
+    {id:"chatty",    zh:"搭上话 · 和 agent 聊了起来", en:"small talk · chatted with the agent", hz:"直接跟它说句话", he:"just say something"},
+    {id:"iot_hunter",zh:"识货 · 发现了 IoT 差异点",   en:"sharp eye · found the IoT edge",  hz:"某个三字母命令",   he:"a three-letter command"},
+    {id:"gallery",   zh:"逛展 · 看过作品列表",        en:"gallery walk · browsed the works",hz:"列出点什么",       he:"list something"},
+    {id:"visitor",   zh:"登门 · 打开了一个作品",      en:"door knock · opened a work",      hz:"open <名字>",      he:"open <name>"},
+    {id:"dark_side", zh:"光暗切换 · 换过主题",        en:"phase shift · switched theme",    hz:"太亮了？太暗了？", he:"too bright? too dark?"},
+    {id:"polyglot",  zh:"双语者 · 切过语言",          en:"polyglot · switched language",    hz:"换个语言看看",     he:"try the other language"},
+    {id:"hacker",    zh:"彩蛋猎人 · 触发过彩蛋",      en:"egg hunter · found an easter egg",hz:"权限不够就提权？", he:"when in doubt, sudo"},
+    {id:"witness",   zh:"目击者 · 亲眼见到工具调用",  en:"witness · saw a live tool call",  hz:"让 agent 替你办件事", he:"make the agent act"},
+    {id:"inspector", zh:"扒源码的 · 找到了隐藏命令",  en:"source diver · found the hidden command", hz:"F12 里按提示做", he:"open F12 and follow the hint"},
+    {id:"master",    zh:"终端大师 · 全成就达成",      en:"terminal master · all unlocked",  hz:"集齐其余 10 枚",   he:"unlock the other 10"}
+  ];
+  var ach={}; try{ ach=JSON.parse(localStorage.getItem("ach")||"{}"); }catch(e){}
+  function achCount(){ var n=0; ACH.forEach(function(a){ if(ach[a.id]) n++; }); return n; }
+  function unlock(id){
+    if(ach[id]) return;
+    ach[id]=1; try{ localStorage.setItem("ach",JSON.stringify(ach)); }catch(e){}
+    var a=null; ACH.forEach(function(x){ if(x.id===id) a=x; });
+    if(a) add('<span class="c-amber">🏆 '+L("成就解锁","achievement unlocked")+'</span> <b>'+(state.lang==="en"?a.en:a.zh)+'</b> <span class="c-dim">('+achCount()+'/'+ACH.length+')</span>');
+    setStat();
+    if(id!=="master"&&achCount()===ACH.length-1) unlock("master");
+  }
+  function cAch(){
+    add('<span class="c-dim">'+L("成就 ","achievements ")+achCount()+"/"+ACH.length+'</span>');
+    ACH.forEach(function(a){
+      if(ach[a.id]) add('<span class="c-green">🏆</span> '+(state.lang==="en"?a.en:a.zh));
+      else add('<span class="c-dim">🔒 ??? · '+L("提示：","hint: ")+(state.lang==="en"?a.he:a.hz)+'</span>');
+    });
+  }
+
+  /* command outputs */
+  function cWhoami(){
+    add('<span class="c-amber">whyiyhw</span> · '+L("后端 / 全栈工程师 · 8 年","backend / full-stack engineer · 8y"));
+    add(L("近年重心：<b>Go 微服务</b> + <b>AI 工程化</b>。也做过一堆 <b>IoT 软硬件控制</b>。","Lately: <b>Go microservices</b> + <b>AI engineering</b>. Also a lot of <b>IoT hardware control</b>."));
+    add('<span class="c-dim">'+L("现任 Drayeasy · Senior Fullstack（北美货运物流 SaaS）","Now Drayeasy · Senior Fullstack (North America freight SaaS)")+'</span>');
+  }
+  function cSkills(){
+    add('<span class="c-cyan">languages</span>  Go · PHP · Python');
+    add('<span class="c-cyan">storage</span>    MySQL · Redis');
+    add('<span class="c-cyan">infra</span>      Nginx · Docker · ELK · Prometheus · Grafana · RocketMQ');
+    add('<span class="c-cyan">ai</span>         LLM · Agent · DSPy · DeepSeek · json_schema');
+  }
+  function cIot(){
+    add('<span class="c-cyan">'+L("软硬件 / IoT 控制 — 我少有人有的一块","IoT / hardware control — my rare edge")+'</span>');
+    add(L("• 商用车 <b>TBOX</b> 车联网终端","• commercial-vehicle <b>TBOX</b> telematics"));
+    add(L("• 蓝牙 <b>水控</b>（淋浴 / 开水器）、<b>门禁</b>、<b>电表</b>","• Bluetooth <b>water controllers</b> (shower/boiler), <b>access control</b>, <b>meters</b>"));
+    add(L("• <b>MQTT</b>、私有蓝牙协议、设备↔云↔端联动、离线二维码、计费退款","• <b>MQTT</b>, private BLE protocols, device↔cloud↔client, offline QR, billing/refunds"));
+  }
+  var WORKS=[
+    {n:"seek", d:{zh:"AI 编程 Agent 平台（仿 Claude Code，Go + DeepSeek）",en:"AI coding-agent platform (Claude-Code-like, Go + DeepSeek)"}, u:"https://seek.whyiyhw.com"},
+    {n:"chatgpt-wechat", d:{zh:"微信 LLM 助手 · 1.2k★",en:"WeChat LLM assistant · 1.2k★"}, u:"https://github.com/whyiyhw/chatgpt-wechat"},
+    {n:"gws", d:{zh:"Go WebSocket 框架",en:"Go WebSocket framework"}, u:"https://github.com/whyiyhw/gws"}
+  ];
+  function cLs(){
+    add('<span class="c-dim">'+L("我的作品（open &lt;名字&gt; 打开）：","my works (open &lt;name&gt;):")+'</span>');
+    WORKS.forEach(function(w){ add('<span class="c-amber">▸ '+esc(w.n)+'</span>  <span class="c-muted">'+esc(w.d[state.lang])+'</span>'); });
+    add('<span class="c-dim">'+L("更多 → github.com/whyiyhw（输 open github）","more → github.com/whyiyhw (try: open github)")+'</span>');
+  }
+  function cOpen(arg){
+    if(!arg){ add('<span class="c-muted">'+L("用法：open seek / chatgpt-wechat / gws / github / blog","usage: open seek / chatgpt-wechat / gws / github / blog")+'</span>'); return; }
+    var map={seek:"https://seek.whyiyhw.com",zhiyuan:"https://zhiyuan.whyiyhw.com","志愿罗盘":"https://zhiyuan.whyiyhw.com","chatgpt-wechat":"https://github.com/whyiyhw/chatgpt-wechat",gws:"https://github.com/whyiyhw/gws",phpfpm_exporter:"https://github.com/whyiyhw/phpfpm_exporter",github:"https://github.com/whyiyhw",blog:"https://blogxy.cn"};
+    var u=map[arg.toLowerCase()];
+    if(u){ add('<span class="c-green">→ '+L("正在打开","opening")+' '+u+'</span>'); window.open(u,"_blank","noopener"); unlock("visitor"); }
+    else add('<span class="c-muted">'+L("没找到：","not found: ")+esc(arg)+'</span>');
+  }
+  function cContact(){
+    add('<span class="c-cyan">email</span>   whyiyhw@outlook.com');
+    add('<span class="c-cyan">github</span>  github.com/whyiyhw');
+    add('<span class="c-cyan">blog</span>    blogxy.cn');
+    add('<span class="c-cyan">wechat</span>  <span class="c-muted">'+L("把你的微信/邮箱 + 需求发给 agent，他会主动加你","leave your contact + pitch with the agent, he'll reach out")+'</span>');
+    add('<span class="c-dim">'+L("后端 / AI / IoT 的兼职合作都欢迎。","freelance/collab in backend / AI / IoT welcome.")+'</span>');
+  }
+  function cHelp(){
+    var rows=[["help",L("显示命令","show commands")],["whoami",L("我是谁","who I am")],["skills",L("技术栈","tech stack")],
+      ["iot",L("IoT / 硬件控制 ★","IoT / hardware ★")],["ls / work",L("列出作品","list works")],["open <name>",L("打开作品","open a work")],
+      ["ask <q>",L("问 AI agent","ask the AI agent")],["contact",L("联系方式","contact")],["ach",L("成就 🏆","achievements 🏆")],["theme",L("深 / 浅","dark/light")],["lang",L("中 / EN","zh/en")],["clear",L("清屏","clear")]];
+    rows.forEach(function(r){ add('<span class="c-amber">'+esc(r[0])+'</span>'+" ".repeat(Math.max(2,14-r[0].length))+'<span class="c-muted">'+r[1]+'</span>'); });
+  }
+
+  /* ---------- AI agent ---------- */
+  // 部署 worker/ 后填入 Worker URL（如 https://ask.xxx.workers.dev），ask 即变为在线 DeepSeek。
+  // key 永远只在 Worker secret 里，不在这里。
+  var AI_ENDPOINT="https://ask.whyiyhw.com/api";
+  // 会话 ID：匿名、仅用于把同一访客的对话串起来（后台回放 + 改进 agent）
+  var SID="";
+  try{ SID=localStorage.getItem("sid")||"";
+    if(!SID){ SID=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():"s-"+Date.now().toString(36)+Math.random().toString(36).slice(2,10); localStorage.setItem("sid",SID); }
+  }catch(e){}
+  // 本地联调免改码：控制台执行 localStorage.ai_endpoint="http://localhost:8787" 后刷新；removeItem 恢复
+  try{ AI_ENDPOINT=localStorage.getItem("ai_endpoint")||AI_ENDPOINT; }catch(e){}
+  var chat=[]; // 多轮记忆，随请求发给 Worker
+  document.getElementById("stAgent").textContent=AI_ENDPOINT?"deepseek":"scripted";
+  function scripted(q){
+    var s=q.toLowerCase();
+    if(/^(hi|hello|hey|yo|哈喽|嗨|你好|您好|在吗|在不在)[!！。.？?~\s]*$/i.test(q))
+      return L("你好 👋 我是 whyiyhw 的终端 agent。想了解他就直接问：IoT 做过什么？会 Go 吗？能接活吗？","hey 👋 I'm whyiyhw's terminal agent. Ask me anything: his IoT work? Go skills? availability?");
+    function has(){ for(var i=0;i<arguments.length;i++){ if(s.indexOf(arguments[i])>=0||q.indexOf(arguments[i])>=0) return true; } return false; }
+    if(has("iot","硬件","tbox","水控","门禁","电表","hardware","mqtt","蓝牙","ble"))
+      return L("做过不少：商用车 TBOX、蓝牙水控、门禁、电表。熟 MQTT、私有蓝牙协议、设备-云-端联动。这块能做的后端不多，是我的差异点。","Plenty: commercial-vehicle TBOX, Bluetooth water controllers, access control, meters. MQTT, private BLE, device-cloud-client. Few backend devs cover this — it's my edge.");
+    if(has("ai","llm","agent","deepseek","prompt","模型"))
+      return L("AI 工程化是我近年主线：AI agent 在运营业务的落地与调优、LLM 抽取、DSPy 自动优化 Prompt、评测框架，还自己造了 Agent 平台「seek」。open seek 看看。","AI engineering is my recent focus: landing & tuning AI agents in real ops, LLM extraction, DSPy prompt optimization, evals — plus my own agent platform 'seek'. try: open seek");
+    if(has("go","golang"))
+      return L("Go 是主力：Gin / go-zero、GMP 调度、GC、channel、pprof 调优。开源的 seek、gws、chatgpt-wechat 都是 Go。","Go is my main: Gin/go-zero, GMP scheduling, GC, channels, pprof. seek, gws, chatgpt-wechat are all Go.");
+    if(has("合作","hire","freelance","活","项目","fit","适合","招"))
+      return L("欢迎聊合作。后端 / AI / IoT 的活儿都能接。把需求 + 你的联系方式发在这里，他会主动联系你；或写信 whyiyhw@outlook.com。","Happy to talk. I take backend / AI / IoT work. Leave your pitch + contact here and he'll reach out, or email whyiyhw@outlook.com.");
+    if(has("经验","年","experience","背景"))
+      return L("8 年后端，PHP 起步到 Go + AI，做过 SaaS 平台负责人、IoT 软硬件，现在在 Drayeasy 负责 AI agent 在运营线的落地与调优。","8 years backend, PHP → Go + AI, was a SaaS platform lead, did IoT hardware, now landing & tuning AI agents for ops at Drayeasy.");
+    if(has("seek")) return L("seek 是我造的本地编程 Agent 平台：plan、子 Agent 团队、cron、记忆、MCP，单 Go 二进制，DeepSeek 原生。open seek。","seek is my local coding-agent platform: plan, sub-agent teams, cron, memory, MCP, single Go binary, DeepSeek-native. try: open seek");
+    if(has("php")) return L("PHP 8 年老本行：Laravel/Hyperf/Swoole，读过源码，做过 SaaS、支付、IoT 后端。","8 years of PHP: Laravel/Hyperf/Swoole, read the source, built SaaS, payments, IoT backends.");
+    return L("好问题。接上 DeepSeek 后我能自由回答。现在可试：ask IoT 做过什么 / ask 会 Go 吗 / ask 能合作吗，或输入 help。","Good question. Once wired to DeepSeek I'll answer anything. For now try: ask about IoT / ask can he do Go / ask is he available, or type help.");
+  }
+  function cAsk(q){
+    if(!q){ add('<span class="c-muted">'+L("用法：ask 你的问题（例：ask IoT 做过什么）","usage: ask &lt;question&gt;  (e.g. ask about his IoT work)")+'</span>'); return; }
+    state.turns++; setStat(); unlock("chatty");
+    add('<span class="c-cyan">[agent]</span> <span class="c-dim">'+L("thinking…","thinking…")+'</span>');
+    var thinking=out.lastChild;
+    function reply(ans){ if(thinking) thinking.remove(); type('<span class="c-cyan">[whyiyhw-agent]</span> '+ans, null, 12); }
+    if(AI_ENDPOINT){
+      var got=false;
+      var ctl=("AbortController" in window)?new AbortController():null;
+      var tm=ctl?setTimeout(function(){ctl.abort();},45000):null;
+      // 流式渲染：SSE 逐字上屏（流本身就是打字机）；工具事件实时显示
+      function toolLine(t){ add('<span class="c-dim">[agent] → '+esc(String(t))+' <span class="c-green">✓</span></span>'); unlock("witness"); }
+      function readStream(res){
+        if(thinking){ thinking.remove(); thinking=null; }
+        var ln=null,txt=null,full="",buf="",dec=new TextDecoder(),reader=res.body.getReader();
+        function handle(o){
+          if(o.t!==undefined){
+            if(!ln){ ln=add('<span class="c-cyan">[whyiyhw-agent]</span> '); txt=document.createTextNode(""); ln.appendChild(txt); }
+            full+=o.t; txt.data=full; got=true; out.scrollTop=out.scrollHeight;
+          } else if(o.tool){ toolLine(o.tool); }
+        }
+        return reader.read().then(function pump(r){
+          if(r.done){
+            if(full){ chat.push({role:"user",content:q},{role:"assistant",content:full}); }
+            else if(!got){ reply(scripted(q)); }
+            return;
+          }
+          buf+=dec.decode(r.value,{stream:true});
+          var evs=buf.split("\n\n"); buf=evs.pop();
+          evs.forEach(function(ev){ ev.split("\n").forEach(function(l){
+            l=l.replace(/^\s+/,"");
+            if(l.indexOf("data:")===0){ try{ handle(JSON.parse(l.slice(5))); }catch(e){} }
+          }); });
+          return reader.read().then(pump);
+        });
+      }
+      fetch(AI_ENDPOINT,{method:"POST",headers:{"content-type":"application/json"},
+          body:JSON.stringify({q:q,lang:state.lang,sid:SID,stream:true,history:chat.slice(-8)}),
+          signal:ctl?ctl.signal:undefined})
+        .then(function(res){
+          var ct=res.headers.get("content-type")||"";
+          if(res.ok&&res.body&&ct.indexOf("event-stream")>=0) return readStream(res);
+          // 非流式兜底（老 Worker / 代理不支持 SSE）
+          return res.json().then(function(j){
+            if(j&&j.answer){
+              if(j.tools&&j.tools.length) j.tools.forEach(toolLine);
+              chat.push({role:"user",content:q},{role:"assistant",content:j.answer});
+              got=true; reply(esc(j.answer));
+            } else reply(scripted(q));
+          });
+        })
+        .then(function(){ if(tm)clearTimeout(tm); })
+        .catch(function(){ if(tm)clearTimeout(tm); if(!got) reply(scripted(q)); });
+    } else { setTimeout(function(){ reply(scripted(q)); }, 420); }
+  }
+
+  function run(raw){
+    var line=raw.trim(); if(!line) return;
+    add('<span class="c-amber">whyiyhw@dev:~$</span> '+esc(line));
+    state.cmds++; setStat(); state.hist.push(line); state.hi=state.hist.length;
+    unlock("first_cmd");
+    var parts=line.split(/\s+/); var c=parts[0].toLowerCase(); var arg=line.slice(parts[0].length).trim();
+    switch(c){
+      case "help": case "?": case "h": cHelp(); break;
+      case "whoami": case "me": cWhoami(); break;
+      case "skills": case "stack": cSkills(); break;
+      case "iot": case "hardware": cIot(); unlock("iot_hunter"); break;
+      case "ls": case "work": case "works": case "projects": cLs(); unlock("gallery"); break;
+      case "open": cOpen(arg); break;
+      case "ask": cAsk(arg); break;
+      case "contact": case "hire": cContact(); break;
+      case "github": cOpen("github"); break;
+      case "blog": cOpen("blog"); break;
+      case "theme": toggleTheme(); add('<span class="c-green">→ '+(root.classList.contains("light")?"light":"dark")+'</span>'); break;
+      case "lang": toggleLang(); add('<span class="c-green">→ '+state.lang+'</span>'); break;
+      case "clear": case "cls": out.innerHTML=""; break;
+      case "sudo": add('<span class="c-muted">'+L("想得美 😏","nice try 😏")+'</span>'); unlock("hacker"); break;
+      case "coffee": add("☕ "+L("求之不得。","always.")); unlock("hacker"); break;
+      case "exit": case "quit": add('<span class="c-muted">'+L("你没法退出。这就是我。","you can't exit. this is me.")+'</span>'); unlock("hacker"); break;
+      case "ach": case "achievements": cAch(); break;
+      default: cAsk(line); // agent-first：不认识的输入一律当问题交给 AI
+    }
+  }
+
+  /* ---------- boot ---------- */
+  // 注意：必须是函数——语言切换后要用当前语言重建，不能在加载时固化
+  function BOOT(){ return [
+    ['<span class="c-amber">whyiyhw.sh</span> v1.0  ·  '+L("启动中…","booting…"),"c-dim"],
+    ['[<span class="c-green">ok</span>] '+L("加载 8 年经验","loaded 8 years of experience")],
+    ['[<span class="c-green">ok</span>] '+L("挂载 Go · PHP · Python · IoT","mounted Go · PHP · Python · IoT")],
+    ['[<span class="c-green">ok</span>] '+L("AI agent 就绪","AI agent ready")+" ("+(AI_ENDPOINT?"deepseek":"scripted")+")"]
+  ]; }
+  function bootHint(){ return '<span class="c-dim">'+L("输入 help 看命令，或直接打字跟我聊。","type help for commands, or just type to chat.")+'</span>'; }
+  function boot(demo){
+    inRow.style.display="none";
+    var B=BOOT();
+    if(demo){ B.forEach(function(b){ add(b[0],b[1]); }); gap(); cWhoami(); gap(); cIot(); gap(); cLs();
+      inRow.style.display="flex"; ready(); return; }
+    var i=0;
+    (function next(){ if(i<B.length){ type(B[i][0],B[i][1],10,function(){ i++; setTimeout(next,90); }); }
+      else { gap(); add(bootHint()); gap();
+        add('<span class="c-amber">whyiyhw@dev:~$</span> whoami'); cWhoami(); inRow.style.display="flex"; ready(); } })();
+  }
+  // 语言切换后重渲染终端，保证滚动区语言与界面一致
+  function reboot(){
+    out.innerHTML="";
+    BOOT().forEach(function(b){ add(b[0],b[1]); }); gap(); add(bootHint()); gap();
+    add('<span class="c-amber">whyiyhw@dev:~$</span> whoami'); cWhoami();
+    inRow.style.display="flex"; ready();
+  }
+  function ready(){ setStat(); refreshPh(); startPh(); if(!/demo/.test(location.hash)) cmd.focus(); }
+
+  /* ---------- controls ---------- */
+  function toggleTheme(){ root.classList.toggle("light"); try{localStorage.setItem("theme",root.classList.contains("light")?"light":"dark");}catch(e){} drawLED(); unlock("dark_side"); }
+  function toggleLang(){ setLang(state.lang==="en"?"zh":"en"); }
+  function setLang(l){ var changed=state.lang!==l; state.lang=l;
+    if(l==="en"){root.classList.add("lang-en");root.lang="en";}else{root.classList.remove("lang-en");root.lang="zh-CN";}
+    try{localStorage.setItem("lang",l);}catch(e){} refreshPh(); markLang();
+    if(changed && out.childNodes.length){ reboot(); unlock("polyglot"); } }
+  var PH_ZH=["打字聊天或输命令… 例：他会 Go 吗","问问他 IoT 做过什么","他适合我的项目吗？","试试 help · ls · iot"];
+  var PH_EN=["chat or type a command… e.g. can he do Go","ask about his IoT work","is he a fit for your project?","try help · ls · iot"];
+  var _phi=0,_phT=null;
+  var _reduceMo=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  function _phList(){ return state.lang==="en"?PH_EN:PH_ZH; }
+  function refreshPh(){ var L=_phList(); cmd.placeholder=L[_phi%L.length]; }
+  function startPh(){ if(_reduceMo||_phT) return; _phT=setInterval(function(){ if(document.activeElement===cmd||cmd.value) return; _phi++; refreshPh(); },2800); }
+  function stopPh(){ if(_phT){ clearInterval(_phT); _phT=null; } }
+  function markLang(){ document.getElementById("enBtn").classList.toggle("on",state.lang==="en");
+    document.getElementById("zhBtn").classList.toggle("on",state.lang!=="en"); }
+
+  document.getElementById("themeBtn").addEventListener("click",toggleTheme);
+  document.getElementById("enBtn").addEventListener("click",function(){setLang("en");});
+  document.getElementById("zhBtn").addEventListener("click",function(){setLang("zh");});
+  document.getElementById("term").addEventListener("click",function(e){ if(!e.target.closest("a")) cmd.focus(); });
+  cmd.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ var v=cmd.value; cmd.value=""; hideChips(); run(v); }
+    else if(e.key==="ArrowUp"){ if(state.hi>0){ state.hi--; cmd.value=state.hist[state.hi]||""; } e.preventDefault(); }
+    else if(e.key==="ArrowDown"){ if(state.hi<state.hist.length){ state.hi++; cmd.value=state.hist[state.hi]||""; } e.preventDefault(); }
+  });
+  function hideChips(){ var c=document.getElementById("chips"); if(c) c.style.display="none"; }
+  var chipsEl=document.getElementById("chips");
+  if(chipsEl) chipsEl.addEventListener("click",function(e){ var b=e.target.closest(".chip"); if(!b) return;
+    var q=state.lang==="en"?b.dataset.qEn:b.dataset.qZh; hideChips(); cmd.value=""; run(q); });
+  document.querySelectorAll(".hint code").forEach(function(el){ el.addEventListener("click",function(){ hideChips(); run(el.textContent.trim()); }); });
+  cmd.addEventListener("focus",stopPh);
+  cmd.addEventListener("blur",startPh);
+
+  /* ---------- reveal ---------- */
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ en.target.classList.add("in"); io.unobserve(en.target);} }); },{threshold:.12,rootMargin:"0px 0px -40px 0px"});
+    document.querySelectorAll(".rv").forEach(function(el){ io.observe(el); });
+  } else document.querySelectorAll(".rv").forEach(function(el){el.classList.add("in");});
+
+  /* ---------- go ---------- */
+  var yr=document.getElementById("yr"); if(yr) yr.textContent=new Date().getFullYear();
+  markLang();
+
+  /* ---------- F12 彩蛋：看源码的都是同类人 ---------- */
+  try{
+    console.log("%c\n  whyiyhw.sh — an AI business card that greets you.\n","font:700 13px/1.5 monospace;color:#ffb020");
+    console.log("%c看源码的都是同类人。想聊合作?在控制台敲 %chire()%c —— 或 curl ask.whyiyhw.com","color:#3fe0ea;font:13px/1.6 monospace","color:#ffb020;font-weight:700","color:#3fe0ea");
+    window.hire=function(){
+      console.log("%c薛异 whyiyhw · github.com/whyiyhw · whyiyhw@outlook.com\n先在页面终端里跟 agent 说句话,它会替我接待你 👋  (or just say hi to the agent above)","color:#3ecf8e;font:600 13px/1.7 monospace");
+      unlock("inspector");
+      return "☕";
+    };
+  }catch(e){}
+
+  function init(){ drawLED(); boot(/demo/.test(location.hash)); }
+  if(document.fonts && document.fonts.ready){ document.fonts.ready.then(init); setTimeout(function(){ if(!out.childNodes.length) init(); },1200); }
+  else init();
+  var rz; window.addEventListener("resize",function(){ clearTimeout(rz); rz=setTimeout(drawLED,180); });
+})();
+</script>

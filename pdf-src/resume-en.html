@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Yi Xue (whyiyhw) · Backend / AI / IoT Engineer · Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+html,body{margin:0}
+body{width:210mm;background:#fbf8f1;color:#2a251c;font:9.5pt/1.6 "JetBrains Mono","Noto Sans SC","PingFang SC",monospace}
+.page{width:210mm;height:297mm;padding:12mm 14mm;position:relative;overflow:hidden;page-break-after:always;background:#fbf8f1}
+.page:last-child{page-break-after:auto}
+.page::before{content:"";position:absolute;inset:0;background:radial-gradient(110mm 80mm at 50% -8%,rgba(184,115,11,.06),transparent 60%);pointer-events:none}
+.amber{color:#b8730b}.cyan{color:#0e7c86}.dim{color:#8a8172}.muted{color:#5c5445}
+h1{font-family:"JetBrains Mono","Noto Sans SC",monospace;font-size:26pt;margin:0;color:#221d15;letter-spacing:.02em;font-weight:700}
+h1 .hid{font-family:"VT323","JetBrains Mono",monospace;font-size:15pt;color:#b8730b;font-weight:400;margin-left:3mm;letter-spacing:.04em}
+.tag{color:#5c5445;margin:1mm 0 1.5mm;font-size:9.5pt}.tag b{color:#b8730b;font-weight:500}
+.cline{color:#8a8172;font-size:8.5pt;margin-bottom:5mm}.cline span{color:#0e7c86}
+.eyebrow{color:#b8730b;font-size:8pt;letter-spacing:.14em;text-transform:uppercase;margin:4.5mm 0 2mm;border-top:1px solid rgba(30,20,10,.14);padding-top:3mm}
+.row{display:flex;gap:4mm;margin-bottom:1.6mm}
+.k{flex:0 0 30mm;color:#0e7c86;font-weight:700}
+.v{flex:1;color:#3d372c}.v b{color:#221d15}
+.job{margin-bottom:3.2mm}
+.jh{display:flex;justify-content:space-between;align-items:baseline}
+.jh .t{font-weight:700;color:#221d15;font-size:10pt}
+.jh .t .role{color:#b8730b;font-weight:500}
+.jh .d{color:#8a8172;font-size:8.5pt}
+.jsub{color:#5c5445;font-size:8.8pt;margin:.4mm 0 1mm}
+ul{margin:.5mm 0 0;padding-left:4.5mm}
+li{margin-bottom:.7mm;color:#3d372c}
+li b{color:#221d15}
+li .hl{color:#0e7c86}
+.oss{display:flex;gap:3.5mm}
+.oss .card{flex:1;border:1px solid rgba(30,20,10,.16);border-radius:2.5mm;padding:3mm;background:#f4efe4}
+.oss .t{font-weight:700;margin-bottom:.8mm;color:#221d15}.oss .t .star{color:#b8730b;font-size:8pt}
+.oss .d{color:#5c5445;font-size:8pt;line-height:1.5;word-break:break-all}
+.nw{white-space:nowrap}
+.foot{position:absolute;left:14mm;right:14mm;bottom:9mm;border-top:1px solid rgba(30,20,10,.14);padding-top:2.5mm;
+  display:flex;justify-content:space-between;color:#8a8172;font-size:8pt}
+.foot .c{color:#5c5445}.foot .c b{color:#0e7c86;font-weight:400}
+</style></head><body>
+
+<!-- ===================== PAGE 1 ===================== -->
+<div class="page">
+  <h1>Yi Xue <span class="hid">whyiyhw</span></h1>
+  <p class="tag">Backend · Full-stack · <b>AI Engineering</b> · <b>IoT Hardware</b> · 8 years · b.1995</p>
+  <p class="cline">✉ <span>whyiyhw@outlook.com</span> · ◆ <span>github.com/whyiyhw</span> · ✎ <span>blogxy.cn</span> · ⌨ <span>ask.whyiyhw.com</span> (AI terminal card)<br>
+  Education: Zhongnan University of Economics and Law (Bachelor)</p>
+
+  <p class="eyebrow">// Skills</p>
+  <div class="row"><div class="k">Go</div><div class="v">Primary language. <b>Microservices</b> (go-zero) / Gin / Goframe; high-concurrency, distributed services and data pipelines; solid on <b>GMP scheduling, GC, channels</b>, pprof tuning. Open-source works seek / gws / chatgpt-wechat are all Go.</div></div>
+  <div class="row"><div class="k">AI Engineering</div><div class="v"><b>Structured LLM extraction, automated prompt optimization with DSPy (GEPA/MIPRO), model eval harness</b>; landing & tuning AI agents in real operations; ships agent products independently in Python.</div></div>
+  <div class="row"><div class="k">PHP</div><div class="v">8 years. PSR-12 + PHPUnit; Laravel (source-level) / Hyperf / Swoole; php-fpm tuning; private Composer packages.</div></div>
+  <div class="row"><div class="k">IoT ★</div><div class="v">A rare edge: <b>commercial-vehicle TBOX telematics, Bluetooth water controllers (shower/boiler), access control, electricity meters</b>; MQTT, private BLE protocols, device-cloud-client full chain, offline QR, billing & refunds.</div></div>
+  <div class="row"><div class="k">Data & Middleware</div><div class="v">MySQL: 10M+-row table optimization, transactions / MVCC / deadlocks, replication & clustering. Redis: structure-driven design, cluster trade-offs, locks / geo / zset / leaky-bucket in production; once built a mini Redis in PHP.</div></div>
+  <div class="row"><div class="k">Ops & Quality</div><div class="v">Nginx / Linux / Shell; ELK + trace for full-chain logging; <b>Prometheus + Grafana</b> (added TCP support to phpfpm_exporter, merged upstream; anomaly rate −50%); Docker / Jenkins / SonarQube.</div></div>
+
+  <p class="eyebrow">// Experience</p>
+  <div class="job">
+    <div class="jh"><span class="t">Drayeasy Inc <span class="role">· Senior Fullstack Engineer</span></span><span class="d">2024.10 – present</span></div>
+    <p class="jsub">US drayage / trucking logistics SaaS (quote → dispatch → tracking → billing, fully digitized). Own LLM adoption and AI productization.</p>
+    <ul>
+      <li>Built the <b>Outlook Graph email-sync infrastructure</b> from zero (OAuth, webhook renewal, incremental sync, retries, health audits) — <b><span class="nw">1,000+/day</span>, <span class="nw">20–30k/month</span></b> synced reliably; the hard part was <span class="hl">distributed races & idempotency</span> edge cases. It is the foundation for all company AI and email scanning.</li>
+      <li>Wrote the core <b>LLM extraction engine</b>; built <b>DSPy-based automated prompt optimization (GEPA/MIPRO) + an eval harness</b>, turning hand-tuned prompts into data-driven optimization — extraction accuracy <span class="hl">90% → 97.88%</span>; json_schema constraints + similarity matching + human-review fallback keep a probabilistic system stable inside deterministic business flows.</li>
+      <li>Own <b>landing & tuning AI agents on the operations line</b> — <b><span class="nw">23,000+ operational orders</span> covered, <span class="nw">40–50k minutes (~700+ hours)</span> of manual work saved</b>; hardened an unreliable external email API into a production-grade distributed sync system (Redis atomic rate-limiting + idempotency + retries + fail-open degradation).</li>
+    </ul>
+  </div>
+  <div class="job">
+    <div class="jh"><span class="t">Suotuo (Hangzhou) Automotive Intelligence <span class="role">· Senior Backend Engineer</span></span><span class="d">2021.10 – 2024.08</span></div>
+    <p class="jsub">Series B. Commercial-vehicle active-safety devices (TBOX telematics) delivery & operations → commercial-vehicle aftermarket maintenance. Owned new-project architecture and core modules.</p>
+    <ul>
+      <li><b>Anxing vehicle-service platform</b>: decomposed maintenance work orders into <span class="hl">atomic, configurable steps</span> for per-client workflows; built a standalone ERP module (multi-tenant, ownership priority, batches, rollback, partial in/out inventory).</li>
+      <li><b>Isoterea SSO</b>: OAuth2.0 authorization-code flow + internal openid + Redis leaky-bucket rate limiting; connected 60% of internal systems within 4 months.</li>
+      <li><b>Anxing assistant</b>: real-time dispatch recommendation with Redis geo + map APIs; collaborative work-order locking; drove Opcache adoption (APIs 500ms → 100–300ms); introduced Copilot + unit-test coverage hooks, team efficiency +20%.</li>
+    </ul>
+  </div>
+  <div class="foot"><span class="c">Yi Xue (whyiyhw) · Resume · <b>whyiyhw@outlook.com</b></span><span>1 / 2</span></div>
+</div>
+
+<!-- ===================== PAGE 2 ===================== -->
+<div class="page">
+  <div class="job" style="margin-top:2mm">
+    <div class="jh"><span class="t">Hangzhou Qingganlan Network Technology <span class="role">· SaaS Platform Lead</span></span><span class="d">2018.10 – 2021.10</span></div>
+    <p class="jsub">Series A. Campus/park-management SaaS, catering & retail, smart hardware, card payments. Grew from developer to platform lead, owning core features and overall quality.</p>
+    <ul>
+      <li><b>Qingganlan SaaS platform</b>: designed from zero the tenant / product / user (accounts, multi-endpoint, face-ID) systems, three-level RBAC, virtual cards (payments, <span class="hl">offline QR codes</span>); authored dev standards, code review, SonarQube + SQL quality gates; unified open API platform.</li>
+      <li><b>Kashuo water-control SaaS + BLE shower ★IoT</b>: SaaS-managed boilers/showers across Alipay / WeChat OA / Mini Program; Aliyun <span class="hl">MQTT</span> device integration, <span class="hl">private BLE protocol</span>, multi-merchant payments, wallet-based refunds.</li>
+      <li><b>Smart-repair rebuild</b>: Laravel → <span class="hl">Hyperf (Swoole)</span>; API latency under 50ms, 10× throughput in load tests.</li>
+      <li><b>Message push platform (Go + RocketMQ)</b>: aggregated 8 channels (WeChat, DingTalk, WeCom, SMS, websocket, email…); cron for broadcast, MQ peak-shaving for realtime; websocket layer is my own gws.</li>
+      <li><b>Ops toolkit (Go + Gin)</b>: ads / coupons / membership / points; cache + async against sustained traffic; sync.Map for concurrent coupon issuance.</li>
+      <li><b>GC2 legacy platform</b>: slow-query optimization and open-API maintenance for 180 tenants / 2M users — where I learned to respect production.</li>
+    </ul>
+  </div>
+  <div class="job">
+    <div class="jh"><span class="t">Baifuda (Hangzhou) Holdings <span class="role">· PHP Developer</span></span><span class="d">2017.07 – 2018.10</span></div>
+    <ul>
+      <li><b>Rujing car leasing</b>: vehicle / order / unified auth (JWT state sync across 3 clients) core modules.</li>
+      <li><b>Huirong Wealth</b>: operations campaigns and data reporting, cross-team with Java/mobile.</li>
+    </ul>
+  </div>
+
+  <p class="eyebrow">// Open Source & Works</p>
+  <div class="oss">
+    <div class="card"><div class="t">seek</div><div class="d">Self-built local coding-agent platform: plan mode / sub-agent teams / cron / memory / MCP. Single Go binary, DeepSeek-native.<br><span class="cyan">seek.whyiyhw.com</span></div></div>
+    <div class="card"><div class="t">chatgpt-wechat <span class="star">1.2k★</span></div><div class="d">LLM assistant & support bot for WeChat / WeCom, with Dify workflow support.<br><span class="cyan">github.com/whyiyhw/chatgpt-wechat</span></div></div>
+    <div class="card"><div class="t">gws</div><div class="d">Event- and aspect-oriented Go WebSocket framework; HTTP-to-WS forwarding.<br><span class="cyan">github.com/whyiyhw/gws</span></div></div>
+    <div class="card"><div class="t">phpfpm_exporter</div><div class="d">Added TCP protocol support, <b>merged upstream</b>.<br><span class="cyan">github.com/whyiyhw/phpfpm_exporter</span></div></div>
+  </div>
+
+  <p class="eyebrow">// One More Thing</p>
+  <p style="color:#2a251c;margin:0">I build things: an agent platform, a 1.2k★ open-source project, and an AI business card that greets visitors on its own — this resume was sent to you by it. <span class="muted">Thanks for reading.</span></p>
+
+  <div class="foot"><span class="c">Yi Xue (whyiyhw) · Resume · <b>whyiyhw@outlook.com</b> · sent by the agent at ask.whyiyhw.com</span><span>2 / 2</span></div>
+</div>
+
+</body></html>

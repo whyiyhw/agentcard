@@ -1,0 +1,9 @@
+# 本地联调用（npx wrangler dev 自动读取）。
+# 用法：cp .dev.vars.example .dev.vars —— .dev.vars 已被 .gitignore 排除，永不提交。
+# 把值换成你自己的 key —— 只填在这里，别发给任何人（包括 AI 对话里）。
+DEEPSEEK_API_KEY=sk-REPLACE_ME
+# 可选（联调通知 / 邮件 / 微信门控 / 后台时再填）：
+# ADMIN_TOKEN=your-long-random-string
+# WECHAT_ID=your-wechat-id
+# MAILERSEND_API_KEY=mlsn.xxxx
+# FEISHU_APP_SECRET=xxxx

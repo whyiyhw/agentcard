@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=VT323&display=swap" rel="stylesheet">
+<style>
+@page{size:A4;margin:0}
+*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+body{margin:0;width:210mm;height:297mm;background:#08090c;color:#e7e9ee;
+  font:10.5pt/1.65 "JetBrains Mono","PingFang SC",monospace;padding:14mm 16mm;position:relative;overflow:hidden}
+body::before{content:"";position:absolute;inset:0;background:radial-gradient(120mm 90mm at 50% -10%,rgba(255,176,32,.10),transparent 60%)}
+.amber{color:#ffb020}.cyan{color:#3fe0ea}.dim{color:#5b6473}.muted{color:#8b93a1}
+h1{font-family:"VT323","JetBrains Mono",monospace;font-size:44pt;margin:0;color:#ffb020;letter-spacing:.04em;text-shadow:0 0 14px rgba(255,176,32,.5)}
+.tag{color:#8b93a1;margin:2mm 0 8mm;font-size:10pt}
+.tag b{color:#ffb020;font-weight:500}
+.sec{margin-top:7mm;position:relative}
+.eyebrow{color:#ffb020;font-size:8.5pt;letter-spacing:.14em;margin:0 0 2.5mm;text-transform:uppercase}
+.row{display:flex;gap:6mm;margin-bottom:2.5mm}
+.k{flex:0 0 30mm;color:#3fe0ea;font-weight:700}
+.v{flex:1;color:#c9ced8}
+.v b{color:#e7e9ee}
+.works{display:flex;gap:4mm;margin-top:2mm}
+.card{flex:1;border:1px solid rgba(255,255,255,.14);border-radius:3mm;padding:4mm;background:#0f1218}
+.card .t{font-weight:700;margin-bottom:1.5mm}.card .t .star{color:#febc2e;font-size:8.5pt}
+.card .d{color:#8b93a1;font-size:8.8pt;line-height:1.55}
+.foot{position:absolute;left:16mm;right:16mm;bottom:12mm;border-top:1px solid rgba(255,255,255,.14);padding-top:4mm;
+  display:flex;justify-content:space-between;color:#8b93a1;font-size:9pt}
+.foot .c a{color:#3fe0ea}
+.term{margin-top:7mm;border:1px solid rgba(255,255,255,.16);border-radius:3mm;background:#0f1218;padding:4mm 5mm;font-size:9pt;color:#8b93a1}
+.term .p{color:#ffb020;font-weight:700}
+</style></head><body>
+
+<h1>whyiyhw</h1>
+<p class="tag">后端 · 全栈 · <b>AI 工程化</b> · <b>IoT 硬件控制</b> · 8 年 &nbsp;<span class="dim">/ backend · AI engineering · IoT hardware · 8y</span></p>
+
+<div class="sec">
+  <p class="eyebrow">// what i do</p>
+  <div class="row"><div class="k">01 后端</div><div class="v">高并发、分布式服务与数据链路。<b>Go</b>（Gin / go-zero / GMP / pprof）、PHP（Laravel / Hyperf / Swoole，源码级）、Python；MySQL、Redis。</div></div>
+  <div class="row"><div class="k">02 AI</div><div class="v">AI agent 在真实运营业务的<b>落地与调优</b>：LLM 结构化抽取、Prompt 自动优化（DSPy）、评测框架。现任 Drayeasy（北美货运 SaaS）Senior Fullstack。</div></div>
+  <div class="row"><div class="k">03 IoT ★</div><div class="v">少见的差异点：<b>商用车 TBOX</b> 车联网、蓝牙<b>水控</b>（淋浴/热水器）、<b>门禁</b>、<b>电表</b>；MQTT、私有 BLE 协议、设备-云-端全链路、离线二维码、计费退款。</div></div>
+</div>
+
+<div class="sec">
+  <p class="eyebrow">// selected works</p>
+  <div class="works">
+    <div class="card"><div class="t">seek</div><div class="d">自研本地编程 Agent 平台：plan / 子 Agent 团队 / cron / 记忆 / MCP。Go 单二进制，DeepSeek 原生。<br><span class="cyan">seek.whyiyhw.com</span></div></div>
+    <div class="card"><div class="t">chatgpt-wechat <span class="star">1.2k ★</span></div><div class="d">微信 / 企微里安全使用的 LLM 助手与客服，支持 Dify 工作流。<br><span class="cyan">github.com/whyiyhw</span></div></div>
+    <div class="card"><div class="t">gws</div><div class="d">事件与切面思路的 Go WebSocket 框架，HTTP 请求转 WS 消息。<br><span class="cyan">github.com/whyiyhw/gws</span></div></div>
+  </div>
+</div>
+
+<div class="term">
+  <span class="p">$</span> ask "他适合我的项目吗？"<br>
+  <span class="dim">[whyiyhw-agent]</span> 后端 / AI / IoT 的活儿都能接。这份简介由我的 AI 终端生成 —— 来 <span class="cyan">ask.whyiyhw.com</span> 直接问我。
+</div>
+
+<div class="foot">
+  <span class="c">✉ <a>whyiyhw@outlook.com</a> &nbsp;·&nbsp; ◆ <a>github.com/whyiyhw</a> &nbsp;·&nbsp; ✎ <a>blogxy.cn</a></span>
+  <span class="dim">接后端 / AI / IoT 兼职与合作 · 2026</span>
+</div>
+
+</body></html>

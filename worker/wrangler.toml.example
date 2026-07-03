@@ -1,0 +1,54 @@
+# agentcard — ask-agent Worker 部署模板
+# 用法：cp wrangler.toml.example wrangler.toml，再把下面的占位值改成你自己的。
+# 部署：
+#   cd worker
+#   wrangler deploy                        # 得到 https://ask.<你的子域>（前端 + API 一体）
+
+name = "ask"                               # Worker 名，可自定义
+main = "ai-proxy.js"
+compatibility_date = "2026-07-01"
+
+# run_worker_first：首页先进 Worker（curl UA 检测）；resume.pdf 先进 Worker（签名链接门控）
+assets = { directory = "assets", binding = "ASSETS", run_worker_first = ["/", "/resume.pdf", "/resume-en.pdf"] }
+
+# 你的自定义域名（在 Cloudflare 里先把域名接进来）。没有域名可整块删掉，用 *.workers.dev。
+routes = [
+  { pattern = "ask.example.com", custom_domain = true },
+]
+
+[vars]
+# 改成你的正式域名（逗号分隔）。"*" 仅建议调试期用。
+ALLOWED_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080,https://example.com,https://www.example.com,https://ask.example.com"
+
+# 通知（机制对齐 seek feishu_bot.go）：
+#   feishu = 飞书「企业自建应用」bot 走 IM API（推荐）
+#   其他   = slack | discord | ntfy | template | raw（走 LARK_WEBHOOK URL）
+LARK_FORMAT = "feishu"
+# 自建应用凭证；app_secret 用 secret 存：
+#   npx wrangler secret put FEISHU_APP_SECRET
+FEISHU_APP_ID = "cli_xxxxxxxxxxxxxxxx"
+# 收件目标：群= chat_id（oc_…），私聊= open_id（ou_…）
+FEISHU_RECEIVE_ID = "oc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+FEISHU_RECEIVE_ID_TYPE = "chat_id"
+# format=template 时启用，占位符 {{title}} {{body}} {{event}}：
+# LARK_TEMPLATE = '{"msg_type":"text","content":{"title":"{{title}}","msg":"{{body}}"}}'
+
+# 简历邮件（send_resume 工具，MailerSend 或 Resend 发送）：
+#   npx wrangler secret put MAILERSEND_API_KEY   # 或 RESEND_API_KEY
+#   发件域名需先在对应平台验证
+RESEND_FROM = "Your Name <agent@example.com>"
+REPLY_TO = "you@example.com"
+
+# —— P0 会话落库 ——
+# 先执行：npx wrangler d1 create ask-db
+# 把输出的 database_id 粘到下面，再执行建表：
+#   npx wrangler d1 execute ask-db --remote --file=schema.sql
+# 不想要日志功能：整块注释掉即可，站点照常工作。
+[[d1_databases]]
+binding = "DB"
+database_name = "ask-db"
+database_id = ""   # ← wrangler d1 create 后粘贴
+
+# 每日 Lark 日报：01:00 UTC = 北京 09:00
+[triggers]
+crons = ["0 1 * * *"]

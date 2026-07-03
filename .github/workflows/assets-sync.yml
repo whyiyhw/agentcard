@@ -1,0 +1,25 @@
+name: Assets sync check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  index-html:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify index.html is synced to worker/assets
+        run: |
+          if [ ! -f worker/assets/index.html ]; then
+            echo "::error::missing worker/assets/index.html — run ./worker/sync-assets.sh"
+            exit 1
+          fi
+          if ! cmp -s index.html worker/assets/index.html; then
+            echo "::error::worker/assets/index.html is out of sync with index.html"
+            echo "Run: ./worker/sync-assets.sh"
+            exit 1
+          fi
+          echo "index.html ↔ worker/assets/index.html OK"
