@@ -12,8 +12,7 @@
 
 **Live demo:** [ask.whyiyhw.com](https://ask.whyiyhw.com) · 也试试 `curl ask.whyiyhw.com`
 
-<!-- 顶部放个终端 GIF 最抓人：打开 https://<你的域名>/#demo 会自动演示，录屏后取消下一行注释即可
-![demo](docs/demo.gif) -->
+![agentcard demo — LED boot, whoami, ls, iot](docs/demo.gif)
 
 ## 能做什么
 
