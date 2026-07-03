@@ -11,7 +11,7 @@
  *   wrangler secret put ADMIN_TOKEN        # 必填（/admin 的钥匙，随便一串长随机字符）
  *   wrangler secret put LARK_WEBHOOK       # 可选（Lark 自定义机器人 webhook，不填则不通知）
  *
- * 隐私红线：IP 只存截断哈希；微信号不进 prompt（P1 起走服务端工具门控）。
+ * 隐私红线：IP 只存截断哈希；微信号不进 prompt（走服务端工具门控发放）。
  *
  * 请求:  POST /api {q, lang, sid?, history?}
  * 响应:  200 {answer} | 4xx/5xx {error} —— 前端收到非 answer 自动回退本地脚本
@@ -40,7 +40,7 @@ function rateLimited(ip) {
   return false;
 }
 
-// —— 线索检测（P0：关键词 + 联系方式正则；P1 会换成 function calling）——
+// —— 线索检测：关键词 + 联系方式正则，与下方 function-calling 工具并存（双保险）——
 // 微信段：关键词前不能是字母数字（防 "testwx2026" 里的 wx 误命中）；后面容忍 号/码/是/为/冒号/等号
 const CONTACT_RE = /([\w.+-]+@[\w-]+(?:\.[\w-]+)+)|(?:^|\D)(1[3-9]\d{9})(?:\D|$)|(?:^|[^a-z0-9])(?:微信|weixin|wechat|vx|wx)[号码]?\s*[是为:：=]?\s*([a-zA-Z][\w-]{4,19})/i;
 const INTENT_RE = /(合作|接活|外包|报价|预算|付费|酬劳|兼职|想找(你|他)|找人做|hire|freelanc|paid|budget|quote|collab|project for)/i;
@@ -247,7 +247,7 @@ async function sendEmail(env, { to, subject, text }) {
   return false;
 }
 
-// ==================== P1：Agent 工具（DeepSeek function calling）====================
+// ==================== Agent 工具（DeepSeek function calling）====================
 // 原则：敏感值只在服务端。微信号存 secret WECHAT_ID，模型只有在门控通过后才看到返回值。
 
 const TOOLS = [

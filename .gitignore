@@ -10,6 +10,9 @@ worker/wrangler.toml
 # 私密素材（含手机号/薪资），不进开源仓库
 resume-base-php-detail.md
 
+# 内部产品规划（里程碑/指标/开放问题）——理念已浓缩进 agentcard-deploy skill，不进公开仓库
+PRD.md
+
 # 完整简历 PDF（全部履历）—— 本地生成、随部署上线，但不进公开仓库
 # 否则任何人可从 GitHub raw 直接下载，绕过 send_resume 的邮箱门控
 # （brief.pdf 是人人可得的一页简介，保留作模板示例）

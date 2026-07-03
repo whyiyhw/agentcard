@@ -142,4 +142,3 @@ npx wrangler secret put FEISHU_APP_SECRET  # 走飞书通知时
 | `worker/wrangler.toml` | 域名 / D1 / 通知配置 | 从 `.example` 复制后改 |
 | `worker/ai-proxy.js` | 引擎:AI 代理/工具/落库/后台/通知/A2A | **不用碰** |
 | `worker/schema.sql` | D1 建表 | 直接用 |
-| `PRD.md` | 产品规划(理念的完整版) | 读它了解全貌 |

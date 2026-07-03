@@ -1,33 +1,73 @@
 # agentcard — 会接待访客的 AI 终端名片
 
-一张会替主人接待、筛选、转化访客的 AI 名片：可玩终端 + 流式 AI + 真工具（留联/微信门控/发简历）+ 线索后台 + 飞书通知 + curl 名片 + A2A。
-An AI business card that greets visitors for its owner: a playable terminal, streaming AI with real tools (contact intake / gated WeChat / resume delivery), a leads dashboard, Feishu notifications, a curl card, and A2A.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange) ![A2A](https://img.shields.io/badge/A2A-enabled-8A2BE2)
 
-**这也是一个模板**——fork 之后改两个内容文件，就是你自己的 AI 名片。参考实例（live demo）：[whyiyhw.sh · ask.whyiyhw.com](https://ask.whyiyhw.com)。
+一张会替你**接待、筛选、转化**访客的 AI 名片。也是第一张能被别人的 agent 直接对话（**A2A**）的个人名片。
+
+> **TL;DR** — An AI business card that greets, screens, and converts visitors for you.
+> A playable terminal + streaming DeepSeek agent with real, server-gated tools
+> (contact intake · gated WeChat · résumé delivery), a leads dashboard with Feishu
+> alerts, a `curl` card, and **A2A** — so another agent can discover and talk to it.
+> One `index.html` + one Cloudflare Worker. Fork, edit two files, `wrangler deploy`.
+
+**Live demo:** [ask.whyiyhw.com](https://ask.whyiyhw.com) · 也试试 `curl ask.whyiyhw.com`
+
+<!-- 顶部放个终端 GIF 最抓人：打开 https://<你的域名>/#demo 会自动演示，录屏后取消下一行注释即可
+![demo](docs/demo.gif) -->
+
+## 能做什么
+
+- **可玩终端** — LED 点阵名字 + 启动动画 + 真命令行（`help`/`iot`/`ls`/`ask`…），深浅 / 中英切换，成就系统
+- **流式 AI agent** — DeepSeek 代理（key 只在服务端），SSE 逐字上屏，多轮上下文；挂了自动回退脚本应答
+- **4 个服务端门控的真工具** — 留联 / 微信（须先留联系方式）/ 一页简介 / 完整简历（邮箱四重门控发送）
+- **线索后台 + 飞书通知** — 谁来了、聊了什么、有人想合作实时推送 + 每日日报；IP 只存哈希
+- **curl 名片 + A2A** — `curl` 拿 ANSI 名片；别人的 agent 可 `GET /.well-known/agent-card.json` 发现并 `POST /a2a` 对话
+
+## 玩法
+
+本地：`python3 -m http.server 8080` → http://localhost:8080（或直接双击 `index.html`）。
+终端命令：`help` · `whoami` · `skills` · `iot` · `ls` · `open seek` · `ask <问题>` · `theme` · `lang` · `clear`；支持 ↑/↓ 历史；`#demo` 自动演示。
+
+## 结构
 
 ```
-resume/
-├── index.html          # 前端：内容 + 样式 + 终端引擎（自包含，内容区改成你的）
+├── index.html          # 前端：内容 + 样式 + 终端引擎（自包含，改内容区）
 ├── worker/
 │   ├── ai-proxy.js     # 引擎：AI 代理 / 工具 / 落库 / 后台 / 通知 / A2A（不用改）
 │   ├── config.js       # ★ 内容：人设、事实基线、curl 名片、邮件模板、A2A 卡（改成你的）
 │   ├── schema.sql      # D1 建表
-│   ├── wrangler.toml.example  # 部署配置模板（域名 / D1 / 通知）→ cp 成 wrangler.toml（真值本地，gitignore）
-│   └── assets/         # 部署产物：index.html 副本 + brief.pdf + og.png（resume*.pdf 本地生成、gitignore，不公开）
-├── pdf-src/            # 简历 / 合作简介的 HTML 源（Chrome 出 PDF）
-└── PRD.md              # 产品规划
+│   ├── wrangler.toml.example  # 部署配置模板 → cp 成 wrangler.toml（真值本地，gitignore）
+│   └── assets/         # 部署产物：index.html 副本 + brief.pdf + og.png
+├── pdf-src/            # 合作简介 HTML 源（brief.html；完整简历源本地生成、不入库）
+└── .claude/skills/agentcard-deploy/  # 让 Claude Code 带你部署的 skill（含设计理念）
 ```
 
-## Fork 成为你的名片（十分钟）
+## 部署（约十分钟）
 
-> 最省事的方式：在 Claude Code 里打开本仓库，触发内置 skill **`agentcard-deploy`**（说「部署这个项目」或「我要自己的 AI 名片」），它会访谈你、逐步把下面这些做完，并顺带讲清设计理念与安全模型。手动步骤如下：
+> 最省事：在 Claude Code 里打开本仓库，触发内置 skill **`agentcard-deploy`**（说「部署这个项目」），它会访谈你逐步做完，并讲清设计理念与安全模型。手动如下：
 
-0. **起手**：`cp worker/wrangler.toml.example worker/wrangler.toml` + `cp worker/.dev.vars.example worker/.dev.vars`（真实配置只在本地，已 gitignore，不进仓库）
-1. **改内容**：`worker/config.js`（人设 prompt、事实、域名、邮箱、curl 名片、A2A 卡）+ `index.html` 的 HTML 内容区（hero 文案、作品卡、能力、联系方式）+ `pdf-src/` 重新出 PDF
-2. **改配置**：`worker/wrangler.toml` —— Worker 名、自定义域名、`ALLOWED_ORIGINS`、`FEISHU_*`（或换 slack/discord/ntfy/template）
+0. **起手**：`cp worker/wrangler.toml.example worker/wrangler.toml` + `cp worker/.dev.vars.example worker/.dev.vars`
+1. **改内容**：`worker/config.js`（人设、事实、域名、邮箱、curl 名片、A2A 卡）+ `index.html` 内容区 + `pdf-src/` 重出 PDF
+2. **改配置**：`worker/wrangler.toml` — Worker 名、域名、`ALLOWED_ORIGINS`、通知渠道（`FEISHU_*` 或 slack/discord/ntfy）
 3. **建库**：`npx wrangler d1 create ask-db` → 填 `database_id` → `npx wrangler d1 execute ask-db --remote --file=schema.sql`
-4. **灌 secrets**：`DEEPSEEK_API_KEY`（必填）· `ADMIN_TOKEN`（必填）· `WECHAT_ID` / `MAILERSEND_API_KEY`（或 `RESEND_API_KEY`）/ `FEISHU_APP_SECRET`（按需）
-5. **上线**：`./worker/deploy.sh`
+4. **灌 secrets**：`DEEPSEEK_API_KEY`（必）· `ADMIN_TOKEN`（必）· `WECHAT_ID` / `MAILERSEND_API_KEY`（或 `RESEND_API_KEY`）/ `FEISHU_APP_SECRET`（按需）
+5. **上线**：`./worker/deploy.sh`（同步前端 → `wrangler deploy`）
+
+> **key 只在 Worker secret，永不进前端**（否则被盗刷）。防滥用：CORS 白名单 · 每 IP 10 次/分 · 问答各 ≤500 token。不绑 D1 也能跑——落库 / 通知全走 `waitUntil` 旁路。
+> 发件域名验证（SPF/DKIM）、简历 PDF 重生成、本地联调（`wrangler dev` + `localStorage.ai_endpoint`）等细节 → 见 **`.claude/skills/agentcard-deploy/SKILL.md`**。
+
+上线后：`https://<域名>/admin?t=<ADMIN_TOKEN>` 看会话 / 线索 / 回放；`…/admin/probe?t=…` 验证通知链路。
+
+## Agent 工具
+
+DeepSeek function calling，Worker 侧执行，终端里可见 `[agent] → xxx ✓`：
+
+| 工具 | 触发 | 防线 |
+|---|---|---|
+| `leave_contact` | 访客留下联系方式 + 来意 | 落 `leads` + 推送通知 |
+| `offer_wechat` | 访客要微信号 | **微信号存 secret，不进 prompt**；门控＝对方须已留联系方式；每会话最多 2 次 |
+| `send_brief` | 访客想快速了解 | 返回 `/brief.pdf`（一页简介，人人可得） |
+| `send_resume` | 访客诚心要简历 + 给了邮箱 | 发到对方邮箱。**四重门控**：邮箱须访客亲手敲的 · 同邮箱 7 天不重发 · 每会话 1 次 · 每日全局 ≤10。固定模板（无注入面），`Reply-To` 直达本人；链接带 token、7 天有效、**被打开时飞书推 🔥**（最热线索） |
 
 ## A2A：让别人的 agent 也能来递名片
 
@@ -41,113 +81,10 @@ curl -s https://ask.whyiyhw.com/a2a -H 'content-type: application/json' -d '{
 }'
 ```
 
-## 玩法 / How to use
+## 自定义 / License
 
-本地：`python3 -m http.server 8080` → http://localhost:8080 （或直接双击 `index.html`）
+- 文案：`index.html` 内中英用 `<span class="zh">` / `<span class="en">`，语言标记用 `lang-en`（别用 `en`，会撞内容规则）。
+- 配色：`:root` 的 CSS 变量（主色 `--amber`，次色 `--cyan`）。
+- 静态托管：GitHub Pages（`main` / root）或 Cloudflare Pages（build 留空，输出 `/`）；AI 走上面的 Worker。
 
-终端里可输入：`help` · `whoami` · `skills` · `iot` · `ls` · `open seek` · `ask <问题>` · `theme` · `lang` · `clear`
-支持命令历史（↑ / ↓）、深浅切换、中英切换。加 `#demo` 打开会自动跑几条命令做演示。
-
-## 让 `ask` 变成真的 DeepSeek agent
-
-前端 **不能** 放 DeepSeek key（会被扒出来盗刷）。`worker/` 里是持有 key 的代理，三步上线：
-
-```bash
-cd worker
-npx wrangler deploy                        # 1. 部署 → 得到 https://ask.<子域>.workers.dev
-npx wrangler secret put DEEPSEEK_API_KEY   # 2. 粘贴 key（只存 Cloudflare secret，不进仓库/前端）
-```
-
-3. 把 `index.html` 里的 `AI_ENDPOINT = ""` 改成第 1 步的 Worker URL。刷新后状态栏 `agent` 变为 `deepseek`，`ask` 即为在线 AI（带多轮上下文）。
-
-上线正式域名后，把 `worker/wrangler.toml` 的 `ALLOWED_ORIGINS` 改成你的站点域名（逗号分隔），再 `npx wrangler deploy` 一次。
-
-内置防滥用：CORS 白名单、每 IP 每分钟 10 次、问题 ≤500 字、回答 ≤500 token。
-Worker 挂了或没配时，`ask` 自动回退本地脚本应答，页面不会坏。
-
-## P0：后台 + 线索通知（谁来了、聊了什么、有人想合作马上知道）
-
-```bash
-cd worker
-npx wrangler d1 create ask-db                        # ① 建库，把输出的 database_id 填进 wrangler.toml
-npx wrangler d1 execute ask-db --remote --file=schema.sql   # ② 建表
-npx wrangler secret put ADMIN_TOKEN                  # ③ /admin 的钥匙（自己编一串长随机字符）
-npx wrangler secret put LARK_WEBHOOK                 # ④ 可选：飞书机器人 / 流程 webhook（其他平台也行）
-./deploy.sh                                          # ⑤ 上线
-```
-
-之后你拥有：
-
-- **后台** `https://ask.whyiyhw.com/admin?t=<ADMIN_TOKEN>`：今日会话/提问、7 天线索、会话列表 + 完整对话回放（终端风格）
-- **实时通知**：访客留下联系方式或表达合作意向时推送（每会话最多 3 条防刷屏）
-- **日报**：每天北京时间 09:00 推会话数/提问数/新线索 + 最近问题
-- 通知机制与 seek 一致（`webhook.go` + `feishu_bot.go`）。`LARK_FORMAT="feishu"` = 飞书**企业自建应用 bot** 走 IM API：`tenant_access_token` 缓存（7200s、提前 5 分钟刷新、单飞）、`content` 双重编码、**HTTP 200 + 非零 code 视为真错误**、token 失效码自动刷新重试。配置：`wrangler.toml` 填 `FEISHU_APP_ID` / `FEISHU_RECEIVE_ID`（群=chat_id / 私聊=open_id），`npx wrangler secret put FEISHU_APP_SECRET`。其他平台：`slack` / `discord` / `ntfy` / `template` / `raw` 走 `LARK_WEBHOOK` URL
-- 验证通知链路：开 `https://ask.whyiyhw.com/admin/probe?t=<ADMIN_TOKEN>`，飞书收到「✅ 通知测试」即通；失败原因看 `npx wrangler tail ask`
-- **隐私**：IP 只存截断哈希；页脚有一行记录声明；`sid` 是前端随机 uuid，不含个人信息
-- **微信号已下架**：页面、终端、AI 提示词里都没有明文微信号——访客想加微信，agent 会请对方留下联系方式，由你主动加回（线索同时进后台 + Lark）
-
-不绑 D1 也能跑：所有落库/通知都是旁路（`waitUntil`），挂了不影响回答。
-
-## P1：Agent 工具化（function calling）
-
-agent 有三个真工具（DeepSeek tools，Worker 侧执行，终端里可见 `[agent] → xxx ✓`）：
-
-| 工具 | 触发 | 防线 |
-|---|---|---|
-| `leave_contact` | 访客留下联系方式+来意 | 落 `leads`（source=tool）+ 推送通知 |
-| `offer_wechat` | 访客要微信号 | **微信号存 secret `WECHAT_ID`，不进 prompt**；门控=对方必须已留过联系方式；每会话最多放行 2 次 |
-| `send_brief` | 访客想快速了解 | 返回 `/brief.pdf`（一页合作简介，人人可得） |
-| `send_resume` | 访客诚心要完整简历 + 给了邮箱 | 完整简历发对方邮箱。**四重门控**：邮箱必须是访客自己在对话里敲的（模型编不出没出现过的地址）· 同邮箱 7 天不重发 · 每会话 1 次 · 全局每日 ≤10。邮件为固定模板（无注入面），`Reply-To` 指向 whyiyhw@outlook.com（对方回信直达本人）。简历链接带随机 token、7 天有效，**被打开时飞书推 🔥 通知**——最热的线索信号 |
-
-启用：
-
-```bash
-cd worker
-npx wrangler secret put WECHAT_ID   # 值=你的微信号；不配则 offer_wechat 永远拒绝
-./deploy.sh
-```
-
-### send_resume 启用步骤（MailerSend / Resend 任选，代码两家都支持，优先 MailerSend）
-
-1. 注册 [MailerSend](https://www.mailersend.com)（或 [Resend](https://resend.com)）→ 添加并验证你的**发件域名** → 按提示在 DNS 加 SPF/DKIM 记录 → 等验证通过
-2. 后台生成 API Key → `npx wrangler secret put MAILERSEND_API_KEY`（用 Resend 则 `RESEND_API_KEY`）
-3. 建 `resume_sends` 表：`npx wrangler d1 execute ask-db --remote --file=schema.sql`（IF NOT EXISTS，重跑安全）
-4. `./deploy.sh`
-5. （可选双保险）Cloudflare → Email Routing：把发件地址转发到你的邮箱——邮件本身已带 `Reply-To`，这一步只防有人手动抄 From 地址写信
-
-隐私：完整简历 PDF **无手机号、无薪资、无微信号**；不走签名链接直接访问 `/resume.pdf` 一律 404。
-
-> ⚠️ 本仓库**不含** `resume.pdf` / `resume-en.pdf`（已 gitignore）——否则任何人能从 GitHub raw 直接下载，绕过上面的邮箱门控。fork 后按下面步骤**自己生成**，PDF 随部署上线、不进公开仓库。`brief.pdf`（人人可得的一页简介）随仓库提供作示例。
-
-PDF 源文件在 `pdf-src/`（本仓库随附 `brief.html` 作示例；完整简历源 `resume.html` / `resume-en.html` 同 PDF 一样不进公开仓库，fork 后照 `brief.html` 的结构自建），改完用 Chrome 重新出 PDF：
-
-```bash
-"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
-  --print-to-pdf=worker/assets/resume.pdf --no-pdf-header-footer pdf-src/resume.html
-```
-
-### 本地联调（不动线上、不改代码）
-
-1. 在 `worker/.dev.vars`（已 gitignore）里填入你的 key：`DEEPSEEK_API_KEY=sk-xxx`
-2. 终端 1：`cd worker && npx wrangler dev` → Worker 跑在 http://localhost:8787
-3. 终端 2：`python3 -m http.server 8080` → 打开 http://localhost:8080
-4. 浏览器控制台执行：`localStorage.ai_endpoint="http://localhost:8787"; location.reload()`
-   状态栏 `agent` 变 `deepseek`，`ask` 即为真 DeepSeek。恢复：`localStorage.removeItem("ai_endpoint"); location.reload()`
-
-也可以直接 curl 验 Worker：
-
-```bash
-curl -s http://localhost:8787 -H 'content-type: application/json' \
-  -d '{"q":"他 IoT 做过什么？","lang":"zh"}'
-```
-
-## 部署 / Deploy
-
-**GitHub Pages** — 推送后 Settings → Pages 选 `main` / `/ (root)`。
-**Cloudflare Pages** — 连接仓库，Build command 留空，输出目录 `/`（纯静态）。同平台还能顺手放上面的 AI Worker。
-
-## 自定义
-
-- 文案：`index.html` 内，中英用 `<span class="zh">` / `<span class="en">`，html 上的语言标记用 `lang-en`（不能用 `en`，会和内容规则撞）。
-- 配色：`:root` 里的 CSS 变量（主色 `--amber`，次色 `--cyan`）。
-- 隐私：手机号、薪资未公开。
+MIT © whyiyhw (Yi Xue) — see [LICENSE](LICENSE).
