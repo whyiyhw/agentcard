@@ -340,8 +340,10 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
   var state={ lang: root.classList.contains("lang-en")?"en":"zh", turns:0, cmds:0, hist:[], hi:0 };
 
   /* ---------- LED dot-matrix name ---------- */
-  function drawLED(){
-    var c=document.getElementById("led"); if(!c) return;
+  var _led=null;
+  // 算一次几何 + 采点，缓存到 _led（resize/主题切换/开机动画共用同一份点集）
+  function computeLED(){
+    var c=document.getElementById("led"); if(!c) return null;
     var ctx=c.getContext("2d"); var text="whyiyhw";
     var dpr=Math.min(2,window.devicePixelRatio||1);
     var host=c.parentElement.clientWidth||700;
@@ -350,16 +352,40 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     var F=170, font="700 "+F+'px "JetBrains Mono", monospace';
     o.font=font; var tw=Math.ceil(o.measureText(text).width)+8; var th=Math.ceil(F*1.05);
     off.width=tw; off.height=th; o.font=font; o.textBaseline="middle"; o.fillStyle="#fff"; o.fillText(text,4,th/2);
-    var data; try{ data=o.getImageData(0,0,tw,th).data; }catch(e){ c.replaceWith(Object.assign(document.createElement("div"),{className:"led-mini",textContent:"whyiyhw",style:"font-size:56px;text-align:center"})); return; }
-    var step=9, dots=[];
-    for(var y=0;y<th;y+=step){ for(var x=0;x<tw;x+=step){ if(data[(y*tw+x)*4+3]>110) dots.push([x,y]); } }
+    var data; try{ data=o.getImageData(0,0,tw,th).data; }catch(e){ c.replaceWith(Object.assign(document.createElement("div"),{className:"led-mini",textContent:"whyiyhw",style:"font-size:56px;text-align:center"})); _led=null; return null; }
+    var step=9, dots=[], maxX=1;
+    for(var y=0;y<th;y+=step){ for(var x=0;x<tw;x+=step){ if(data[(y*tw+x)*4+3]>110){ dots.push([x,y]); if(x>maxX) maxX=x; } } }
     var scale=cssW/tw, cssH=th*scale;
     c.style.width=cssW+"px"; c.style.height=cssH+"px"; c.width=cssW*dpr; c.height=cssH*dpr;
-    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.clearRect(0,0,cssW,cssH);
     var amber=getComputedStyle(root).getPropertyValue("--amber").trim()||"#ffb020";
-    var d=Math.max(2.2, step*scale*0.78);
-    ctx.fillStyle=amber; ctx.shadowColor=amber; ctx.shadowBlur=step*scale*0.85;
-    for(var i=0;i<dots.length;i++){ ctx.fillRect(dots[i][0]*scale, dots[i][1]*scale, d, d); }
+    var cyan=getComputedStyle(root).getPropertyValue("--cyan").trim()||"#3fe0ea";
+    _led={ ctx:ctx, dots:dots, scale:scale, d:Math.max(2.2,step*scale*0.78), amber:amber, cyan:cyan, blur:step*scale*0.85, cssW:cssW, cssH:cssH, maxX:maxX, dpr:dpr };
+    return _led;
+  }
+  // prog 0→1：点阵屏上电，逐列从左到右“解码”点亮；解码带用副色 cyan 闪烁，锁定后落回 amber
+  function paintLED(prog){
+    var s=_led; if(!s) return;
+    var ctx=s.ctx, band=0.20, i, nx, edge, lit=[], scr=[];
+    ctx.setTransform(s.dpr,0,0,s.dpr,0,0); ctx.clearRect(0,0,s.cssW,s.cssH);
+    for(i=0;i<s.dots.length;i++){ nx=s.dots[i][0]/s.maxX; edge=prog*(1+band)-nx;
+      if(edge>=band) lit.push(s.dots[i]); else if(edge>0 && Math.random()<0.5) scr.push(s.dots[i]); }
+    ctx.shadowBlur=s.blur;
+    ctx.fillStyle=s.amber; ctx.shadowColor=s.amber;                 // 已锁定：主色 amber
+    for(i=0;i<lit.length;i++) ctx.fillRect(lit[i][0]*s.scale, lit[i][1]*s.scale, s.d, s.d);
+    ctx.fillStyle=s.cyan; ctx.shadowColor=s.cyan; ctx.globalAlpha=0.8;// 解码带：副色 cyan 闪
+    for(i=0;i<scr.length;i++) ctx.fillRect(scr[i][0]*s.scale, scr[i][1]*s.scale, s.d, s.d);
+    ctx.globalAlpha=1;
+  }
+  function drawLED(){ computeLED(); paintLED(1); }                   // 整屏即时重绘：resize / 主题切换
+  function bootLED(){                                                // 上电解码动画：开机跑一次
+    if(_reduceMo){ drawLED(); return; }                             // 减少动态：直接整屏
+    if(!computeLED()) return;
+    var dur=1150, t0=0;
+    function frame(t){ if(!t0) t0=t; var p=(t-t0)/dur; if(p>1) p=1;
+      var e=p<0.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;                    // easeInOutCubic：起手不抢，更从容
+      paintLED(e);
+      if(p<1) requestAnimationFrame(frame); else paintLED(1); }
+    requestAnimationFrame(frame);
   }
 
   /* ---------- terminal ---------- */
@@ -662,7 +688,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     };
   }catch(e){}
 
-  function init(){ drawLED(); boot(/demo/.test(location.hash)); }
+  function init(){ bootLED(); boot(/demo/.test(location.hash)); }
   if(document.fonts && document.fonts.ready){ document.fonts.ready.then(init); setTimeout(function(){ if(!out.childNodes.length) init(); },1200); }
   else init();
   var rz; window.addEventListener("resize",function(){ clearTimeout(rz); rz=setTimeout(drawLED,180); });
