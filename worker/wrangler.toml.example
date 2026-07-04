@@ -43,10 +43,9 @@ FEISHU_RECEIVE_ID_TYPE = "chat_id"
 # format=template 时启用，占位符 {{title}} {{body}} {{event}}：
 # LARK_TEMPLATE = '{"msg_type":"text","content":{"title":"{{title}}","msg":"{{body}}"}}'
 
-# 简历邮件（send_resume 工具，Resend 或 MailerSend 发送，代码 Resend 优先）：
-#   npx wrangler secret put RESEND_API_KEY        # 推荐；或 MAILERSEND_API_KEY
-#   发件域名需先在对应平台验证（SPF/DKIM）
-#   ⚠ MailerSend trial 账号有「唯一收件人数」硬上限，发给陌生地址会被 #MS42225 拒——需先申请账号审批。
+# 简历邮件（send_resume 工具，走 Resend）：
+#   npx wrangler secret put RESEND_API_KEY
+#   发件域名需先在 Resend 验证（SPF/DKIM），免费档 3000/月、100/天，个人用途够用。
 RESEND_FROM = "Your Name <agent@example.com>"
 REPLY_TO = "you@example.com"
 

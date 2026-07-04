@@ -155,7 +155,7 @@ export const AGENT_CARD = {
     "薛异（whyiyhw）的个人 AI 名片 agent：8 年后端 / AI 工程化 / IoT 硬件全链路工程师。可询问他的技能、作品与合作意向；接受留下联系方式。 " +
     "Personal AI business-card agent for Yi Xue (whyiyhw): 8y backend / AI engineering / IoT hardware. Ask about his skills, works, and availability; leave contact for collaboration.",
   url: `${SITE.origin}/a2a`,
-  version: "1.0.0",
+  version: "0.0.1",
   provider: { organization: SITE.owner.id, url: SITE.origin },
   capabilities: { streaming: false, pushNotifications: false, stateTransitionHistory: false },
   defaultInputModes: ["text/plain"],

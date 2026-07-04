@@ -1,6 +1,6 @@
 # agentcard — 会接待访客的 AI 终端名片
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange) ![A2A](https://img.shields.io/badge/A2A-enabled-8A2BE2)
+![version](https://img.shields.io/badge/version-0.0.1-brightgreen) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange) ![A2A](https://img.shields.io/badge/A2A-enabled-8A2BE2)
 
 一张会替你**接待、筛选、转化**访客的 AI 名片。也是第一张能被别人的 agent 直接对话（**A2A**）的个人名片。
 
@@ -49,11 +49,11 @@
 1. **改内容**：`worker/config.js`（人设、事实、域名、邮箱、curl 名片、A2A 卡）+ `index.html` 内容区 + `pdf-src/` 重出 PDF
 2. **改配置**：`worker/wrangler.toml` — Worker 名、域名、`ALLOWED_ORIGINS`、通知渠道（`FEISHU_*` 或 slack/discord/ntfy）
 3. **建库**：`npx wrangler d1 create ask-db` → 填 `database_id` → `npx wrangler d1 execute ask-db --remote --file=schema.sql`
-4. **灌 secrets**：`DEEPSEEK_API_KEY`（必）· `ADMIN_TOKEN`（必）· `WECHAT_ID` / `RESEND_API_KEY`（或 `MAILERSEND_API_KEY`）/ `FEISHU_APP_SECRET`（按需）
+4. **灌 secrets**：`DEEPSEEK_API_KEY`（必）· `ADMIN_TOKEN`（必）· `WECHAT_ID` / `RESEND_API_KEY` / `FEISHU_APP_SECRET`（按需）
 5. **上线**：`./worker/deploy.sh`（同步前端 → `wrangler deploy`）
 
 > **key 只在 Worker secret，永不进前端**（否则被盗刷）。防滥用：CORS 白名单 · 每 IP 10 次/分 · 问答各 ≤500 token · 全局每日 token 预算（`DAILY_TOKEN_BUDGET`，烧不穿的钱包保险丝，触顶回退+告警）· 注入 pre-gate（`INJECTION_BLOCK`，默认 log-only）· admin 回放链接 HMAC 签名（通知里不带 token）。不绑 D1 也能跑——落库 / 通知全走 `waitUntil` 旁路。
-> 发信推荐 **Resend**（免费档够用）；用 MailerSend 注意 trial 账号有唯一收件人上限（`#MS42225`），需先申请审批。
+> 发信走 **Resend**（免费档 3000/月，发件域名需先在 Resend 验证 SPF/DKIM）。
 > 发件域名验证（SPF/DKIM）、简历 PDF 重生成、本地联调（`wrangler dev` + `localStorage.ai_endpoint`）等细节 → 见 **`.claude/skills/agentcard-deploy/SKILL.md`**。
 
 上线后：`https://<域名>/admin?t=<ADMIN_TOKEN>` 看会话 / 线索 / 回放；`…/admin/probe?t=…` 验证通知链路。

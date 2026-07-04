@@ -306,53 +306,26 @@ async function notify(env, event, title, body) {
   }
 }
 
-// ==================== 邮件发送（Resend / MailerSend，配哪家用哪家）====================
-// RESEND_API_KEY（re_ 开头）优先；MAILERSEND_API_KEY（mlsn. 开头）兜底。
-// 注意：MailerSend trial 账号有「唯一收件人数」硬上限，发给陌生地址会被 #MS42225 拒——
-//   须先验证域名并申请账号审批；个人事务邮件推荐 Resend（免费档够用，无此坑）。
-// 发件人 RESEND_FROM（"名字 <addr>" 格式）需挂在对应平台已验证的域名下。
-
+// ==================== 邮件发送（Resend）====================
+// send_resume 走 Resend。发件人 RESEND_FROM（"名字 <addr>" 格式）需挂在 Resend 已验证的域名下（SPF/DKIM）。
 async function sendEmail(env, { to, subject, text }) {
+  if (!env.RESEND_API_KEY) { console.error("email: RESEND_API_KEY not set"); return false; }
   const from = env.RESEND_FROM || `${SITE.owner.name} <${SITE.owner.email}>`;
-  const m = from.match(/^(.*?)\s*<(.+)>$/);
-  const fromName = m ? m[1].trim() : SITE.owner.name;
-  const fromEmail = m ? m[2] : from;
   const replyTo = env.REPLY_TO || SITE.owner.email;
   try {
-    if (env.RESEND_API_KEY) {
-      const r = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${env.RESEND_API_KEY}` },
-        body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (r.ok) return true;
-      console.error("resend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
-      return false;
-    }
-    if (env.MAILERSEND_API_KEY) {
-      const r = await fetch("https://api.mailersend.com/v1/email", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${env.MAILERSEND_API_KEY}` },
-        body: JSON.stringify({
-          from: { email: fromEmail, name: fromName },
-          to: [{ email: to }],
-          reply_to: { email: replyTo },
-          subject,
-          text,
-        }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (r.status === 202 || r.ok) return true;
-      console.error("mailersend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
-      return false;
-    }
+    const r = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${env.RESEND_API_KEY}` },
+      body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (r.ok) return true;
+    console.error("resend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
+    return false;
   } catch (e) {
     console.error("email error", e?.message || e);
     return false;
   }
-  console.error("email: no provider configured");
-  return false;
 }
 
 // ==================== Agent 工具（DeepSeek function calling）====================
@@ -414,7 +387,7 @@ async function execTool(env, name, args, sid, request, extra) {
       case "send_resume": {
         const email = String(args.email || "").trim().toLowerCase().slice(0, 120);
         if (!/^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(email)) return { ok: false, reason: "invalid_email" };
-        if ((!env.MAILERSEND_API_KEY && !env.RESEND_API_KEY) || !env.DB) return { ok: false, reason: "not_configured" };
+        if (!env.RESEND_API_KEY || !env.DB) return { ok: false, reason: "not_configured" };
         // 门控①：邮箱必须是访客自己在对话里敲出来的（当前问题 or 本会话历史）——模型编不出没出现过的地址
         const inNow = String(extra?.q || "").toLowerCase().includes(email);
         if (!inNow) {

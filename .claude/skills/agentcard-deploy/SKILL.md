@@ -90,7 +90,7 @@ npx wrangler secret put DEEPSEEK_API_KEY   # 必填
 npx wrangler secret put ADMIN_TOKEN        # 必填:/admin 的钥匙,自己编一串长随机字符
 # 按需:
 npx wrangler secret put WECHAT_ID          # 不配则 offer_wechat 永远拒绝(没有微信号可放行)
-npx wrangler secret put RESEND_API_KEY     # 或 MAILERSEND_API_KEY —— send_resume 发信;发件域名需先验证(SPF/DKIM)。个人用途推荐 Resend:MailerSend trial 有唯一收件人上限(#MS42225)会拒陌生收件人
+npx wrangler secret put RESEND_API_KEY     # send_resume 发信;发件域名需先在 Resend 验证(SPF/DKIM),免费档 3000/月够个人用
 npx wrangler secret put FEISHU_APP_SECRET  # 走飞书通知时
 ```
 
