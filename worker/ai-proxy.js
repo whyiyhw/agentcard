@@ -748,7 +748,8 @@ export default {
 
     // ==================== A2A：让别人的 agent 发现并询问这张名片 ====================
     // 薄适配：只支持 message/send（无 Task 生命周期）；contextId 复用 D1 历史实现多轮
-    if (request.method === "GET" && url.pathname === "/.well-known/agent-card.json") {
+    // agent-card.json = 现行规范路径；agent.json = 兼容旧客户端/SDK 的历史路径
+    if (request.method === "GET" && (url.pathname === "/.well-known/agent-card.json" || url.pathname === "/.well-known/agent.json")) {
       return json(AGENT_CARD, 200, { "access-control-allow-origin": "*", "cache-control": "public, max-age=3600" });
     }
     if (url.pathname === "/a2a") {
