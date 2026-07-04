@@ -26,7 +26,7 @@ const MAX_HISTORY = 8;      // 携带的多轮消息数
 const MAX_MSG = 1000;       // 历史单条字符数
 const MAX_TOKENS = 500;     // DeepSeek 回答上限
 
-// —— 每 IP 限速（isolate 内存级，best-effort）——
+// —— 每 IP 限速（isolate 内存级，best-effort；真正的钱包保险丝是下面的全局 token 预算）——
 const RATE_LIMIT = 10;      // 次
 const RATE_WINDOW = 60_000; // 每分钟
 const hits = new Map();
@@ -36,14 +36,120 @@ function rateLimited(ip) {
   if (arr.length >= RATE_LIMIT) return true;
   arr.push(now);
   hits.set(ip, arr);
-  if (hits.size > 5000) hits.clear(); // 内存保险丝
+  // 内存保险丝：只逐出已过期的 IP。旧实现 hits.clear() 会在被灌入大量 IP 时清零所有人计数，
+  // 反而让限速在被攻击时失效——正是攻击者想要的。
+  if (hits.size > 5000) {
+    for (const [k, v] of hits) {
+      if (!v.length || now - v[v.length - 1] >= RATE_WINDOW) hits.delete(k);
+    }
+  }
   return false;
+}
+
+// 北京时区当日 0 点（与日报 / 后台口径一致）
+function beijingDayStart(now) { return now - ((now + 8 * 3600e3) % 86400e3); }
+
+// —— 会话回放签名：HMAC(ADMIN_TOKEN, id) 截断 ——
+// 让飞书深链一键直达，又不把 master ADMIN_TOKEN 放进（群）消息历史；
+// 万一某条链接泄露，也只暴露那一条会话回放，而不是整个后台。
+async function sessionSig(env, id) {
+  if (!env.ADMIN_TOKEN || !id) return "";
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(env.ADMIN_TOKEN), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode("session|" + id));
+  return [...new Uint8Array(mac)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function adminSessionUrl(env, id) {
+  const s = await sessionSig(env, id);
+  return `${SITE.origin}/admin/session?id=${encodeURIComponent(id)}${s ? "&s=" + s : ""}`;
+}
+
+// —— 全局 token 日预算：烧不穿的钱包保险丝（DAILY_TOKEN_BUDGET 未配则不启用）——
+// 计量真实花掉的 token（SUM(messages.tokens)），不是请求数——history 客户端可控，
+// 数次数会被 padding 抬高绕过。30s 从 D1 刷新基数，其余时间用「基数 + 本地增量」估算，
+// 限制多 isolate 集体超冲。无 D1 时退化为纯本地日累计（best-effort，跨天重置）。
+const budgetCache = { day: 0, base: 0, local: 0, fetchedAt: 0, alertedDay: 0 };
+async function overBudget(env, now) {
+  const cap = Number(env.DAILY_TOKEN_BUDGET || 0);
+  if (!cap) return false;
+  const day = beijingDayStart(now);
+  if (day !== budgetCache.day) { budgetCache.day = day; budgetCache.base = 0; budgetCache.local = 0; budgetCache.fetchedAt = 0; }
+  if (env.DB && now - budgetCache.fetchedAt > 30_000) {
+    try {
+      const r = await env.DB.prepare(`SELECT COALESCE(SUM(tokens),0) AS t FROM messages WHERE ts>=?1`).bind(day).first();
+      budgetCache.base = r?.t || 0;
+      budgetCache.local = 0; // D1 已含落库量，本地增量清零重新累计
+      budgetCache.fetchedAt = now;
+    } catch {}
+  }
+  return budgetCache.base + budgetCache.local >= cap;
+}
+function addBudgetSpent(tokens) { budgetCache.local += Number(tokens) || 0; }
+function alertBudgetOnce(env, ctx, now) {
+  const day = beijingDayStart(now);
+  if (budgetCache.alertedDay === day) return;
+  budgetCache.alertedDay = day;
+  ctx.waitUntil(notify(env, "budget.tripped", `⚠️ ${SITE_HOST} 触及每日 token 预算`,
+    `已达 ${env.DAILY_TOKEN_BUDGET} tokens/日 上限，AI 暂停、回退脚本应答；北京时间次日 0 点自动恢复。若非攻击，上调 DAILY_TOKEN_BUDGET 即可。`).catch(() => {}));
+}
+
+// —— 全局每日 lead 通知帽：防被刷屏（超帽仍落库，日报兜底）——
+// 「每会话」防线对故意的人 = 零（sid 前端可控），防刷必须全局。
+const MAX_LEAD_NOTIFY_PER_DAY = 20;
+const leadNotify = { day: 0, count: 0 };
+function leadNotifyAllowed(now) {
+  const day = beijingDayStart(now);
+  if (day !== leadNotify.day) { leadNotify.day = day; leadNotify.count = 0; }
+  if (leadNotify.count >= MAX_LEAD_NOTIFY_PER_DAY) return false;
+  leadNotify.count++;
+  return true;
+}
+
+// 发信失败告警：外部邮件依赖挂了要当场炸主人，但 provider 全挂时别刷屏 → 每日 ≤5 条
+const MAX_SENDFAIL_NOTIFY_PER_DAY = 5;
+const sendFailNotify = { day: 0, count: 0 };
+function sendFailNotifyAllowed(now) {
+  const day = beijingDayStart(now);
+  if (day !== sendFailNotify.day) { sendFailNotify.day = day; sendFailNotify.count = 0; }
+  if (sendFailNotify.count >= MAX_SENDFAIL_NOTIFY_PER_DAY) return false;
+  sendFailNotify.count++;
+  return true;
+}
+
+// —— 注入 pre-gate：命中已知注入范式 → 固定回绝，不打模型（省 token + 零延迟）——
+// 高精度短语（正常访客不会说）；INJECTION_BLOCK!=="true" 时为 log-only（不拦，仅 console.warn + 后台标记）。
+const INJECTION_RE = /忽略[^。\n]{0,12}(指令|规则|设定|提示|instructions?)|ignore (all |your |the )?(previous |above )?(instructions|prompts?|rules)|disregard[^.\n]{0,12}(instructions|prompt)|you (are|'re) (now|no longer)\b|from now on,? ?you|从现在(起|开始)[^。\n]{0,6}你|你不再?是|(扮演|假装|冒充|pretend|roleplay|act as)|进入[^。\n]{0,8}模式|(开发者|developer|god|上帝|dan)\s*模式|\bDAN\b|do anything now|jail\s?break|越狱|(逐字|原样|verbatim|word.?for.?word)[^。\n]{0,12}(打印|输出|复述|重复|repeat|print|reveal)|(system|系统)\s*(prompt|提示词|指令)|你的(系统)?(指令|提示词|设定)\b|<\/?tool.?call|新\s*(工具|tool)|你(有|能|支持|可以)[^。\n]{0,4}(什么|哪些|啥|多少|几个)[^。\n]{0,3}(工具|tool|function)|(备用|切换)[^。\n]{0,4}身份|身份切换|failover|(我|i)['’]?\s*(是|就是|am|m)\s*(whyiyhw|主人|the owner|your (master|admin|owner)|管理员)/i;
+function injectionHit(q) { try { return INJECTION_RE.test(q); } catch { return false; } }
+function injRefusal(lang) {
+  return lang === "en"
+    ? "I don't take that kind of instruction 🙂 Ask about his stack, projects, or availability — or type `help`."
+    : "这类指令我不接 🙂 想了解他的技术栈、项目或合作，直接问，或输 help。";
+}
+
+// history 总字符帽：堵 padding 抬 token（单条已受 MAX_MSG 限，这里限总量）
+const MAX_HISTORY_CHARS = 3000;
+function capHistoryChars(history, maxTotal) {
+  let total = 0; const out = [];
+  for (let i = history.length - 1; i >= 0; i--) {
+    total += history[i].content.length;
+    if (total > maxTotal && out.length) break; // 至少保留最近一条
+    out.unshift(history[i]);
+  }
+  return out;
 }
 
 // —— 线索检测：关键词 + 联系方式正则，与下方 function-calling 工具并存（双保险）——
 // 微信段：关键词前不能是字母数字（防 "testwx2026" 里的 wx 误命中）；后面容忍 号/码/是/为/冒号/等号
 const CONTACT_RE = /([\w.+-]+@[\w-]+(?:\.[\w-]+)+)|(?:^|\D)(1[3-9]\d{9})(?:\D|$)|(?:^|[^a-z0-9])(?:微信|weixin|wechat|vx|wx)[号码]?\s*[是为:：=]?\s*([a-zA-Z][\w-]{4,19})/i;
 const INTENT_RE = /(合作|接活|外包|报价|预算|付费|酬劳|兼职|想找(你|他)|找人做|hire|freelanc|paid|budget|quote|collab|project for)/i;
+
+// leave_contact 用的联系方式校验（比自由文本 CONTACT_RE 宽松：允许裸微信/QQ 号）。
+// 只有校验通过的才写进 leads.contact 列——offer_wechat 的门控读这一列。
+function looksLikeContact(s) {
+  return /^[\w.+-]+@[\w-]+(\.[\w-]+)+$/.test(s)   // email
+    || /^1[3-9]\d{9}$/.test(s)                    // 手机
+    || /^[a-zA-Z][\w-]{4,19}$/.test(s)            // 微信 / QQ 号样式
+    || CONTACT_RE.test(s);                         // 兜底：文本里含联系方式
+}
 
 function corsHeaders(origin, env) {
   const list = (env.ALLOWED_ORIGINS || "*").split(",").map((s) => s.trim()).filter(Boolean);
@@ -200,8 +306,10 @@ async function notify(env, event, title, body) {
   }
 }
 
-// ==================== 邮件发送（MailerSend / Resend，配哪家用哪家）====================
-// MAILERSEND_API_KEY（mlsn. 开头）优先；RESEND_API_KEY（re_ 开头）兜底。
+// ==================== 邮件发送（Resend / MailerSend，配哪家用哪家）====================
+// RESEND_API_KEY（re_ 开头）优先；MAILERSEND_API_KEY（mlsn. 开头）兜底。
+// 注意：MailerSend trial 账号有「唯一收件人数」硬上限，发给陌生地址会被 #MS42225 拒——
+//   须先验证域名并申请账号审批；个人事务邮件推荐 Resend（免费档够用，无此坑）。
 // 发件人 RESEND_FROM（"名字 <addr>" 格式）需挂在对应平台已验证的域名下。
 
 async function sendEmail(env, { to, subject, text }) {
@@ -211,6 +319,17 @@ async function sendEmail(env, { to, subject, text }) {
   const fromEmail = m ? m[2] : from;
   const replyTo = env.REPLY_TO || SITE.owner.email;
   try {
+    if (env.RESEND_API_KEY) {
+      const r = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: { "content-type": "application/json", authorization: `Bearer ${env.RESEND_API_KEY}` },
+        body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (r.ok) return true;
+      console.error("resend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
+      return false;
+    }
     if (env.MAILERSEND_API_KEY) {
       const r = await fetch("https://api.mailersend.com/v1/email", {
         method: "POST",
@@ -226,17 +345,6 @@ async function sendEmail(env, { to, subject, text }) {
       });
       if (r.status === 202 || r.ok) return true;
       console.error("mailersend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
-      return false;
-    }
-    if (env.RESEND_API_KEY) {
-      const r = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: { "content-type": "application/json", authorization: `Bearer ${env.RESEND_API_KEY}` },
-        body: JSON.stringify({ from, to: [to], reply_to: replyTo, subject, text }),
-        signal: AbortSignal.timeout(10_000),
-      });
-      if (r.ok) return true;
-      console.error("resend error", r.status, (await r.text().catch(() => "")).slice(0, 300));
       return false;
     }
   } catch (e) {
@@ -331,25 +439,38 @@ async function execTool(env, name, args, sid, request, extra) {
           subject: RESUME_MAIL.subject,
           text: RESUME_MAIL.text(tok),
         });
-        if (!sent) return { ok: false, reason: "send_failed" };
+        if (!sent) {
+          // 外部发信挂了 → 当场炸主人（每日 ≤5，防 provider 全挂刷屏）；线索不丢，引导访客走邮件
+          if (sendFailNotifyAllowed(now)) {
+            await notify(env, "lead.new", `🚑 简历发送失败 · ${SITE_HOST}`,
+              `${cf.country || ""} ${cf.city || ""}\n收件: ${email}\n→ 查邮件 provider 的 Activity/日志看拒信原因（域名验证 / trial 审批 / 额度）\n回放: ${await adminSessionUrl(env, sid)}`);
+          }
+          return { ok: false, reason: "send_failed", note: `发信暂时不可用，不要重试；请对方直接写信到 ${SITE.owner.email}（本人会回）` };
+        }
         await env.DB.batch([
           env.DB.prepare(`INSERT INTO resume_sends (session_id, ts, email, token) VALUES (?1, ?2, ?3, ?4)`).bind(sid, now, email, tok),
           env.DB.prepare(`INSERT INTO leads (session_id, ts, contact, pitch, source) VALUES (?1, ?2, ?3, '简历已发送', 'resume-sent')`).bind(sid, now, email),
         ]);
         await notify(env, "lead.new", `📄 简历已发送 · ${SITE_HOST}`,
-          `${cf.country || ""} ${cf.city || ""}\n收件: ${email}\n回放: ${SITE.origin}/admin/session?id=${sid}`);
+          `${cf.country || ""} ${cf.city || ""}\n收件: ${email}\n回放: ${await adminSessionUrl(env, sid)}`);
         return { ok: true, note: `resume emailed, link valid 7 days, reply reaches ${SITE.owner.name} directly` };
       }
       case "leave_contact": {
-        const contact = String(args.contact || "").trim().slice(0, 120);
+        const raw = String(args.contact || "").trim().slice(0, 120);
         const pitch = String(args.pitch || "").trim().slice(0, 300);
-        if (!contact) return { ok: false, reason: "empty_contact" };
+        if (!raw && !pitch) return { ok: false, reason: "empty_contact" };
+        // 只有「像样的联系方式」才写进 contact 列——offer_wechat 门控读这一列，避免填一串垃圾就骗开微信门
+        // （这道门是筛客摩擦，不是凭证保护）。无效的原文塞进 pitch，主人后台仍看得到。
+        const contact = looksLikeContact(raw) ? raw : "";
+        const storedPitch = (contact ? pitch : (pitch + (raw ? ` [原文: ${raw}]` : ""))).slice(0, 320);
         if (env.DB) {
           await env.DB.prepare(`INSERT INTO leads (session_id, ts, contact, pitch, source) VALUES (?1, ?2, ?3, ?4, 'tool')`)
-            .bind(sid, now, contact, pitch).run();
+            .bind(sid, now, contact, storedPitch).run();
         }
-        await notify(env, "lead.new", `🧲 新线索（主动留联）· ${SITE_HOST}`,
-          `${cf.country || ""} ${cf.city || ""}\n联系: ${contact}\n来意: ${pitch}\n回放: ${SITE.origin}/admin/session?id=${sid}`);
+        if (leadNotifyAllowed(now)) {
+          await notify(env, "lead.new", `🧲 新线索（主动留联）· ${SITE_HOST}`,
+            `${cf.country || ""} ${cf.city || ""}\n联系: ${contact || raw || "—"}\n来意: ${pitch}\n回放: ${await adminSessionUrl(env, sid)}`);
+        }
         return { ok: true, note: `recorded, ${SITE.owner.name} will reach out` };
       }
       case "offer_wechat": {
@@ -364,7 +485,7 @@ async function execTool(env, name, args, sid, request, extra) {
         await env.DB.prepare(`INSERT INTO leads (session_id, ts, contact, pitch, source) VALUES (?1, ?2, '', '微信号已发放', 'wechat-offer')`)
           .bind(sid, now).run();
         await notify(env, "lead.new", `🤝 微信号已发放 · ${SITE_HOST}`,
-          `${cf.country || ""} ${cf.city || ""}\n回放: ${SITE.origin}/admin/session?id=${sid}`);
+          `${cf.country || ""} ${cf.city || ""}\n回放: ${await adminSessionUrl(env, sid)}`);
         return { ok: true, wechat: env.WECHAT_ID, note: "gate passed" };
       }
       case "send_brief":
@@ -383,6 +504,7 @@ async function execTool(env, name, args, sid, request, extra) {
 /** 一次问答后的旁路处理：落库 + 线索检测 + 实时通知（waitUntil 内跑，不阻塞响应） */
 async function afterExchange(env, ctx0) {
   const { sid, q, answer, lang, latency, tokens, request } = ctx0;
+  addBudgetSpent(tokens); // 计入全局日预算（无 D1 时这是唯一的记账来源）
   if (!env.DB) return; // 未绑 D1 时静默跳过，站点照常工作
   const now = Date.now();
   const cf = request.cf || {};
@@ -412,9 +534,9 @@ async function afterExchange(env, ctx0) {
       await env.DB.prepare(
         `INSERT INTO leads (session_id, ts, contact, pitch, source) VALUES (?1, ?2, ?3, ?4, 'auto')`
       ).bind(sid, now, contact, q).run();
-      // 同一会话最多实时推 3 条，防刷屏
+      // 同一会话最多实时推 3 条 + 全局每日 ≤20 条，双重防刷屏（超帽仍落库，日报兜底）
       const c = await env.DB.prepare(`SELECT COUNT(*) AS n FROM leads WHERE session_id=?1`).bind(sid).first();
-      if ((c?.n || 0) <= 3) {
+      if ((c?.n || 0) <= 3 && leadNotifyAllowed(now)) {
         await notify(
           env,
           "lead.new",
@@ -422,7 +544,7 @@ async function afterExchange(env, ctx0) {
           `${country} ${city} · lang=${lang}\n` +
             `Q: ${q.slice(0, 180)}\n` +
             (contact ? `联系: ${contact}\n` : "") +
-            `回放: ${SITE.origin}/admin/session?id=${sid}`
+            `回放: ${await adminSessionUrl(env, sid)}`
         );
       }
     }
@@ -502,7 +624,29 @@ h2{font-size:14px;color:#ffb020;margin:26px 0 4px}
 
 async function handleAdmin(env, url) {
   const t = url.searchParams.get("t") || "";
-  if (!env.ADMIN_TOKEN || t !== env.ADMIN_TOKEN) return new Response("not found", { status: 404 });
+  const fullAuth = !!env.ADMIN_TOKEN && t === env.ADMIN_TOKEN;
+
+  // —— 会话回放 —— 完整 token，或该会话的有效签名（飞书深链用，不含 master token）
+  if (url.pathname === "/admin/session") {
+    const id = url.searchParams.get("id") || "";
+    const sig = url.searchParams.get("s") || "";
+    const sigOk = !!env.ADMIN_TOKEN && !!sig && sig === (await sessionSig(env, id));
+    if (!fullAuth && !sigOk) return new Response("not found", { status: 404 });
+    if (!env.DB) return page("admin", "<h1>admin</h1><p class='dim'>D1 未绑定。</p>");
+    const sess = await env.DB.prepare(`SELECT * FROM sessions WHERE id=?1`).bind(id).first();
+    const ms = await env.DB.prepare(`SELECT * FROM messages WHERE session_id=?1 ORDER BY ts LIMIT 500`).bind(id).all();
+    const head = sess
+      ? `<p class="dim">${esc(sess.country)} ${esc(sess.city)} · lang=${esc(sess.lang)} · turns=${sess.turns} · ${fmtTs(sess.first_ts)} → ${fmtTs(sess.last_ts)}<br>${esc(sess.ua)}</p>`
+      : `<p class="dim">unknown session</p>`;
+    const body = (ms.results || [])
+      .map((m) => `<div class="msg ${m.role}"><div class="m">${m.role === "q" ? "visitor" : "agent"} · ${fmtTs(m.ts)}${m.latency_ms ? " · " + m.latency_ms + "ms" : ""}${m.tokens ? " · " + m.tokens + " tok" : ""}</div>${esc(m.content)}</div>`)
+      .join("");
+    const back = fullAuth ? `<h1><a href="/admin?t=${encodeURIComponent(t)}">← admin</a> / session</h1>` : `<h1>session</h1>`;
+    return page("session " + id, `${back}${head}${body || "<p class='dim'>empty</p>"}`);
+  }
+
+  // —— 其余 admin 路由：必须完整 token ——
+  if (!fullAuth) return new Response("not found", { status: 404 });
 
   // 通知链路探针：GET /admin/probe?t=TOKEN → 发一条测试通知（失败原因看 wrangler tail）
   if (url.pathname === "/admin/probe") {
@@ -512,20 +656,6 @@ async function handleAdmin(env, url) {
 
   if (!env.DB) return page("admin", "<h1>admin</h1><p class='dim'>D1 未绑定：先 wrangler d1 create 并在 wrangler.toml 填 database_id。</p>");
   const T = encodeURIComponent(t);
-
-  // —— 会话回放 ——
-  if (url.pathname === "/admin/session") {
-    const id = url.searchParams.get("id") || "";
-    const s = await env.DB.prepare(`SELECT * FROM sessions WHERE id=?1`).bind(id).first();
-    const ms = await env.DB.prepare(`SELECT * FROM messages WHERE session_id=?1 ORDER BY ts LIMIT 500`).bind(id).all();
-    const head = s
-      ? `<p class="dim">${esc(s.country)} ${esc(s.city)} · lang=${esc(s.lang)} · turns=${s.turns} · ${fmtTs(s.first_ts)} → ${fmtTs(s.last_ts)}<br>${esc(s.ua)}</p>`
-      : `<p class="dim">unknown session</p>`;
-    const body = (ms.results || [])
-      .map((m) => `<div class="msg ${m.role}"><div class="m">${m.role === "q" ? "visitor" : "agent"} · ${fmtTs(m.ts)}${m.latency_ms ? " · " + m.latency_ms + "ms" : ""}${m.tokens ? " · " + m.tokens + " tok" : ""}</div>${esc(m.content)}</div>`)
-      .join("");
-    return page("session " + id, `<h1><a href="/admin?t=${T}">← admin</a> / session</h1>${head}${body || "<p class='dim'>empty</p>"}`);
-  }
 
   // —— 仪表盘 ——
   const now = Date.now();
@@ -654,6 +784,11 @@ export default {
       if (request.method !== "POST") return json({ error: "POST only" }, 405, ah);
       const aip = request.headers.get("cf-connecting-ip") || "?";
       if (rateLimited(aip)) return json({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "rate limited, retry in a minute" } }, 429, ah);
+      const nowA0 = Date.now();
+      if (await overBudget(env, nowA0)) {
+        alertBudgetOnce(env, ctx, nowA0);
+        return json({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "daily budget reached, try again tomorrow" } }, 429, ah);
+      }
       if (!env.DEEPSEEK_API_KEY) return json({ jsonrpc: "2.0", id: null, error: { code: -32000, message: "agent not configured" } }, 500, ah);
       let rpc;
       try { rpc = await request.json(); } catch { return json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "parse error" } }, 400, ah); }
@@ -670,19 +805,28 @@ export default {
       const contextId = /^[A-Za-z0-9._-]{6,56}$/.test(rawCtx) ? rawCtx : crypto.randomUUID();
       const sidA = "a2a-" + contextId;
       const langA = /[一-鿿]/.test(text) ? "zh" : "en";
+      // 注入 pre-gate（log-only 或 INJECTION_BLOCK 硬拦）——别的 agent 也可能来注入
+      const injA = injectionHit(text);
+      if (injA) console.warn("inj-hit a2a", langA, text.slice(0, 140));
+      if (injA && String(env.INJECTION_BLOCK).toLowerCase() === "true") {
+        const answer = injRefusal(langA);
+        ctx.waitUntil(afterExchange(env, { sid: sidA, q: text, answer: "[inj-blocked] " + answer, lang: langA, latency: 0, tokens: 0, request }).catch(() => {}));
+        return json({ jsonrpc: "2.0", id: rid, result: { kind: "message", role: "agent", messageId: crypto.randomUUID(), contextId, parts: [{ kind: "text", text: answer }], metadata: { blocked: true } } }, 200, ah);
+      }
       // contextId 多轮：从 D1 取该上下文最近的历史
       let historyA = [];
       if (env.DB) {
         try {
           const ms = await env.DB.prepare(`SELECT role, content FROM messages WHERE session_id=?1 ORDER BY ts DESC LIMIT ${MAX_HISTORY}`).bind(sidA).all();
           historyA = (ms.results || []).reverse().map((m) => ({ role: m.role === "q" ? "user" : "assistant", content: m.content.slice(0, MAX_MSG) }));
+          historyA = capHistoryChars(historyA, MAX_HISTORY_CHARS);
         } catch {}
       }
       const tA = Date.now();
       try {
         const { answer, toolsUsed, tokens } = await runAgent(env, request, { q: text, lang: langA, sid: sidA, history: historyA });
         if (!answer) throw new Error("empty completion");
-        const logged = (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + answer;
+        const logged = (injA ? "[inj?] " : "") + (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + answer;
         ctx.waitUntil(afterExchange(env, { sid: sidA, q: text, answer: logged, lang: langA, latency: Date.now() - tA, tokens, request }));
         return json({
           jsonrpc: "2.0",
@@ -719,7 +863,7 @@ export default {
         ctx.waitUntil((async () => {
           await env.DB.prepare(`UPDATE resume_sends SET opened_ts=?1 WHERE token=?2`).bind(Date.now(), k).run();
           await notify(env, "lead.new", `🔥 简历被打开 · ${SITE_HOST}`,
-            `收件: ${row.email}（${which}版）\n回放: ${SITE.origin}/admin/session?id=${row.session_id}`);
+            `收件: ${row.email}（${which}版）\n回放: ${await adminSessionUrl(env, row.session_id)}`);
         })().catch(() => {}));
       }
       return env.ASSETS.fetch(new Request(new URL(url.pathname, url.origin)));
@@ -746,6 +890,13 @@ export default {
     const ip = request.headers.get("cf-connecting-ip") || "?";
     if (rateLimited(ip)) return json({ error: "slow down 🙂 try again in a minute" }, 429, cors);
 
+    // 全局 token 日预算触顶 → 回退（前端收到非 answer 自动落脚本应答，不白屏）
+    const nowReq = Date.now();
+    if (await overBudget(env, nowReq)) {
+      alertBudgetOnce(env, ctx, nowReq);
+      return json({ error: "quota" }, 429, cors);
+    }
+
     if (!env.DEEPSEEK_API_KEY) return json({ error: "DEEPSEEK_API_KEY secret not set" }, 500, cors);
 
     let body;
@@ -760,11 +911,23 @@ export default {
     const lang = body.lang === "en" ? "en" : "zh";
     const sid = /^[A-Za-z0-9._-]{6,64}$/.test(String(body.sid || "")) ? String(body.sid) : "anon-" + (await ipHash(ip)).slice(0, 8);
 
-    // 历史消息白名单式清洗：只收 user/assistant + 字符串 content
-    const history = (Array.isArray(body.history) ? body.history : [])
-      .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
-      .slice(-MAX_HISTORY)
-      .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MSG) }));
+    // 历史消息白名单式清洗：只收 user/assistant + 字符串 content，再限总字符数（防 padding 抬 token）
+    const history = capHistoryChars(
+      (Array.isArray(body.history) ? body.history : [])
+        .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+        .slice(-MAX_HISTORY)
+        .map((m) => ({ role: m.role, content: m.content.slice(0, MAX_MSG) })),
+      MAX_HISTORY_CHARS
+    );
+
+    // 注入 pre-gate（log-only 或 INJECTION_BLOCK 硬拦）
+    const inj = injectionHit(q);
+    if (inj) console.warn("inj-hit", lang, q.slice(0, 140));
+    if (inj && String(env.INJECTION_BLOCK).toLowerCase() === "true") {
+      const answer = injRefusal(lang);
+      ctx.waitUntil(afterExchange(env, { sid, q, answer: "[inj-blocked] " + answer, lang, latency: 0, tokens: 0, request }).catch(() => {}));
+      return json({ answer, tools: [] }, 200, cors);
+    }
 
     const messages = [
       { role: "system", content: SYSTEM_PROMPT + `\n\n（本次访客界面语言 lang=${lang}）` },
@@ -834,7 +997,7 @@ export default {
           await writer.close().catch(() => {});
           await afterExchange(env, {
             sid, q, lang, request, tokens,
-            answer: (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + (full || "⚠ empty"),
+            answer: (inj ? "[inj?] " : "") + (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + (full || "⚠ empty"),
             latency: Date.now() - t0,
           }).catch(() => {});
         }
@@ -848,7 +1011,7 @@ export default {
     try {
       const { answer, toolsUsed, tokens } = await runAgent(env, request, { q, lang, sid, history });
       if (!answer) return json({ error: "empty completion" }, 502, cors);
-      const logged = (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + answer;
+      const logged = (inj ? "[inj?] " : "") + (toolsUsed.length ? `[tools: ${toolsUsed.join(",")}] ` : "") + answer;
       ctx.waitUntil(afterExchange(env, { sid, q, answer: logged, lang, latency: Date.now() - t0, tokens, request }));
       return json({ answer, tools: toolsUsed }, 200, cors);
     } catch (e) {

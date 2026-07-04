@@ -90,7 +90,7 @@ npx wrangler secret put DEEPSEEK_API_KEY   # 必填
 npx wrangler secret put ADMIN_TOKEN        # 必填:/admin 的钥匙,自己编一串长随机字符
 # 按需:
 npx wrangler secret put WECHAT_ID          # 不配则 offer_wechat 永远拒绝(没有微信号可放行)
-npx wrangler secret put MAILERSEND_API_KEY # 或 RESEND_API_KEY —— send_resume 发信;发件域名需先在对应平台验证
+npx wrangler secret put RESEND_API_KEY     # 或 MAILERSEND_API_KEY —— send_resume 发信;发件域名需先验证(SPF/DKIM)。个人用途推荐 Resend:MailerSend trial 有唯一收件人上限(#MS42225)会拒陌生收件人
 npx wrangler secret put FEISHU_APP_SECRET  # 走飞书通知时
 ```
 
@@ -102,6 +102,7 @@ npx wrangler secret put FEISHU_APP_SECRET  # 走飞书通知时
 - `ALLOWED_ORIGINS`:改成你的正式域名(逗号分隔,CORS 白名单)。
 - 通知渠道 `LARK_FORMAT`:`feishu`(企业自建应用 bot 走 IM API,填 `FEISHU_APP_ID` / `FEISHU_RECEIVE_ID`,群= `oc_` chat_id / 私聊= `ou_` open_id)· 或 `slack` / `discord` / `ntfy` / `template` / `raw`(走 `LARK_WEBHOOK` secret 的 URL)。
 - `RESEND_FROM` / `REPLY_TO`:发件人与回信直达地址。
+- 防滥用(可选):`DAILY_TOKEN_BUDGET`(全局每日 token 预算，触顶回退脚本应答+告警，烧不穿的钱包保险丝;留空=不启用) · `INJECTION_BLOCK`(注入 pre-gate，`"true"`=硬拦，默认 log-only)。
 
 ---
 

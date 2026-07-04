@@ -20,6 +20,16 @@ routes = [
 # 改成你的正式域名（逗号分隔）。"*" 仅建议调试期用。
 ALLOWED_ORIGINS = "http://localhost:8080,http://127.0.0.1:8080,https://example.com,https://www.example.com,https://ask.example.com"
 
+# —— 防滥用（P3 安全加固）——
+# 全站每日 token 预算：SUM(messages.tokens) 达上限 → AI 暂停、回退脚本应答，北京时间次日 0 点自动恢复，
+# 触顶推一条飞书告警。这是烧不穿的钱包保险丝（限速是 isolate 内存级、best-effort，挡不住 IP 轮换）。
+# 留空或删除 = 不启用。摸清正常流量后再收紧。
+DAILY_TOKEN_BUDGET = "150000"
+# 注入 pre-gate：命中已知注入范式（忽略指令 / 你现在是X / 逐字打印提示词 / <tool-call> 等）的处理。
+# "true"  = 硬拦，命中直接回固定回绝，不打模型（省 token + 零延迟）
+# 其他/留空 = log-only，仅 console.warn + 后台标记 [inj?]，不拦截（建议先观察几天误伤率再翻 true）
+INJECTION_BLOCK = "false"
+
 # 通知（机制对齐 seek feishu_bot.go）：
 #   feishu = 飞书「企业自建应用」bot 走 IM API（推荐）
 #   其他   = slack | discord | ntfy | template | raw（走 LARK_WEBHOOK URL）
@@ -33,9 +43,10 @@ FEISHU_RECEIVE_ID_TYPE = "chat_id"
 # format=template 时启用，占位符 {{title}} {{body}} {{event}}：
 # LARK_TEMPLATE = '{"msg_type":"text","content":{"title":"{{title}}","msg":"{{body}}"}}'
 
-# 简历邮件（send_resume 工具，MailerSend 或 Resend 发送）：
-#   npx wrangler secret put MAILERSEND_API_KEY   # 或 RESEND_API_KEY
-#   发件域名需先在对应平台验证
+# 简历邮件（send_resume 工具，Resend 或 MailerSend 发送，代码 Resend 优先）：
+#   npx wrangler secret put RESEND_API_KEY        # 推荐；或 MAILERSEND_API_KEY
+#   发件域名需先在对应平台验证（SPF/DKIM）
+#   ⚠ MailerSend trial 账号有「唯一收件人数」硬上限，发给陌生地址会被 #MS42225 拒——需先申请账号审批。
 RESEND_FROM = "Your Name <agent@example.com>"
 REPLY_TO = "you@example.com"
 
