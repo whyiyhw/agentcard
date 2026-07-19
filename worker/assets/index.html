@@ -419,6 +419,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     {id:"hacker",    zh:"彩蛋猎人 · 触发过彩蛋",      en:"egg hunter · found an easter egg",hz:"权限不够就提权？", he:"when in doubt, sudo"},
     {id:"witness",   zh:"目击者 · 亲眼见到工具调用",  en:"witness · saw a live tool call",  hz:"让 agent 替你办件事", he:"make the agent act"},
     {id:"inspector", zh:"扒源码的 · 找到了隐藏命令",  en:"source diver · found the hidden command", hz:"F12 里按提示做", he:"open F12 and follow the hint"},
+    {id:"forker",    zh:"同道中人 · 发现这是开源项目",  en:"kindred dev · found it's open-source", hz:"source / deploy", he:"source / deploy"},
     {id:"master",    zh:"终端大师 · 全成就达成",      en:"terminal master · all unlocked",  hz:"集齐其余 10 枚",   he:"unlock the other 10"}
   ];
   var ach={}; try{ ach=JSON.parse(localStorage.getItem("ach")||"{}"); }catch(e){}
@@ -443,7 +444,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
   function cWhoami(){
     add('<span class="c-amber">whyiyhw</span> · '+L("后端 / 全栈工程师 · 8 年","backend / full-stack engineer · 8y"));
     add(L("近年重心：<b>Go 微服务</b> + <b>AI 工程化</b>。也做过一堆 <b>IoT 软硬件控制</b>。","Lately: <b>Go microservices</b> + <b>AI engineering</b>. Also a lot of <b>IoT hardware control</b>."));
-    add('<span class="c-dim">'+L("现任 Drayeasy · Senior Fullstack（北美货运物流 SaaS）","Now Drayeasy · Senior Fullstack (North America freight SaaS)")+'</span>');
+    add('<span class="c-dim">'+L("现任 Senior Fullstack · 北美货运物流 SaaS","Now Senior Fullstack · North America freight SaaS")+'</span>');
   }
   function cSkills(){
     add('<span class="c-cyan">languages</span>  Go · PHP · Python');
@@ -469,7 +470,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
   }
   function cOpen(arg){
     if(!arg){ add('<span class="c-muted">'+L("用法：open seek / chatgpt-wechat / gws / github / blog","usage: open seek / chatgpt-wechat / gws / github / blog")+'</span>'); return; }
-    var map={seek:"https://seek.whyiyhw.com",zhiyuan:"https://zhiyuan.whyiyhw.com","志愿罗盘":"https://zhiyuan.whyiyhw.com","chatgpt-wechat":"https://github.com/whyiyhw/chatgpt-wechat",gws:"https://github.com/whyiyhw/gws",phpfpm_exporter:"https://github.com/whyiyhw/phpfpm_exporter",github:"https://github.com/whyiyhw",blog:"https://blog.whyiyhw.com"};
+    var map={seek:"https://seek.whyiyhw.com",zhiyuan:"https://zhiyuan.whyiyhw.com","志愿罗盘":"https://zhiyuan.whyiyhw.com","chatgpt-wechat":"https://github.com/whyiyhw/chatgpt-wechat",gws:"https://github.com/whyiyhw/gws",phpfpm_exporter:"https://github.com/whyiyhw/phpfpm_exporter",agentcard:"https://github.com/whyiyhw/agentcard",github:"https://github.com/whyiyhw",blog:"https://blog.whyiyhw.com"};
     var u=map[arg.toLowerCase()];
     if(u){ add('<span class="c-green">→ '+L("正在打开","opening")+' '+u+'</span>'); window.open(u,"_blank","noopener"); unlock("visitor"); }
     else add('<span class="c-muted">'+L("没找到：","not found: ")+esc(arg)+'</span>');
@@ -481,10 +482,18 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     add('<span class="c-cyan">wechat</span>  <span class="c-muted">'+L("把你的微信/邮箱 + 需求发给 agent，他会主动加你","leave your contact + pitch with the agent, he'll reach out")+'</span>');
     add('<span class="c-dim">'+L("后端 / AI / IoT 的兼职合作都欢迎。","freelance/collab in backend / AI / IoT welcome.")+'</span>');
   }
+  function cSource(){
+    add('<span class="c-cyan">'+L("这张名片是开源的 —— 你也能有一张","this card is open-source — you can have one too")+'</span>');
+    add(L("可玩终端 + 流式 AI agent + A2A + 线索后台，<b>全套 MIT 开源</b>。","the playable terminal + streaming AI agent + A2A + leads dashboard — <b>all MIT-licensed</b>."));
+    add('<span class="c-amber">▸</span> <a href="https://github.com/whyiyhw/agentcard" target="_blank" rel="noopener">github.com/whyiyhw/agentcard ↗</a>  <span class="c-dim">'+L("⭐ 顺手点个 star","⭐ drop a star")+'</span>');
+    add('<span class="c-dim">'+L("一个 index.html + 一个 Cloudflare Worker · 改两个文件 · 约 10 分钟部署你自己的。","one index.html + one Cloudflare Worker · edit two files · deploy your own in ~10 min.")+'</span>');
+    add('<span class="c-muted">'+L("在 Claude Code 里打开仓库、说「部署这个项目」，AI 带你做完。","open the repo in Claude Code and say \"deploy this\" — the AI walks you through it.")+'</span>');
+    unlock("forker");
+  }
   function cHelp(){
     var rows=[["help",L("显示命令","show commands")],["whoami",L("我是谁","who I am")],["skills",L("技术栈","tech stack")],
       ["iot",L("IoT / 硬件控制 ★","IoT / hardware ★")],["ls / work",L("列出作品","list works")],["open <name>",L("打开作品","open a work")],
-      ["ask <q>",L("问 AI agent","ask the AI agent")],["contact",L("联系方式","contact")],["ach",L("成就 🏆","achievements 🏆")],["theme",L("深 / 浅","dark/light")],["lang",L("中 / EN","zh/en")],["clear",L("清屏","clear")]];
+      ["ask <q>",L("问 AI agent","ask the AI agent")],["contact",L("联系方式","contact")],["source",L("⭐ 开源 · 部署你自己的","⭐ open-source · deploy your own")],["ach",L("成就 🏆","achievements 🏆")],["theme",L("深 / 浅","dark/light")],["lang",L("中 / EN","zh/en")],["clear",L("清屏","clear")]];
     rows.forEach(function(r){ add('<span class="c-amber">'+esc(r[0])+'</span>'+" ".repeat(Math.max(2,14-r[0].length))+'<span class="c-muted">'+r[1]+'</span>'); });
   }
 
@@ -504,7 +513,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
   function scripted(q){
     var s=q.toLowerCase();
     if(/^(hi|hello|hey|yo|哈喽|嗨|你好|您好|在吗|在不在)[!！。.？?~\s]*$/i.test(q))
-      return L("你好 👋 我是 whyiyhw 的终端 agent。想了解他就直接问：IoT 做过什么？会 Go 吗？能接活吗？","hey 👋 I'm whyiyhw's terminal agent. Ask me anything: his IoT work? Go skills? availability?");
+      return L("你好 👋 我是 whyiyhw 的终端 agent。想了解他就直接问：AI agent 做过什么？会 Go 吗？能接活吗？","hey 👋 I'm whyiyhw's terminal agent. Ask me anything: his AI-agent work? Go skills? availability?");
     function has(){ for(var i=0;i<arguments.length;i++){ if(s.indexOf(arguments[i])>=0||q.indexOf(arguments[i])>=0) return true; } return false; }
     if(has("iot","硬件","tbox","水控","门禁","电表","hardware","mqtt","蓝牙","ble"))
       return L("做过不少：商用车 TBOX、蓝牙水控、门禁、电表。熟 MQTT、私有蓝牙协议、设备-云-端联动。这块能做的后端不多，是我的差异点。","Plenty: commercial-vehicle TBOX, Bluetooth water controllers, access control, meters. MQTT, private BLE, device-cloud-client. Few backend devs cover this — it's my edge.");
@@ -515,7 +524,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     if(has("合作","hire","freelance","活","项目","fit","适合","招"))
       return L("欢迎聊合作。后端 / AI / IoT 的活儿都能接。把需求 + 你的联系方式发在这里，他会主动联系你；或写信 whyiyhw@outlook.com。","Happy to talk. I take backend / AI / IoT work. Leave your pitch + contact here and he'll reach out, or email whyiyhw@outlook.com.");
     if(has("经验","年","experience","背景"))
-      return L("8 年后端，PHP 起步到 Go + AI，做过 SaaS 平台负责人、IoT 软硬件，现在在 Drayeasy 负责 AI agent 在运营线的落地与调优。","8 years backend, PHP → Go + AI, was a SaaS platform lead, did IoT hardware, now landing & tuning AI agents for ops at Drayeasy.");
+      return L("8 年后端，PHP 起步到 Go + AI，做过 SaaS 平台负责人、IoT 软硬件，现在在一家北美货运物流 SaaS 负责 AI agent 在运营线的落地与调优。","8 years backend, PHP → Go + AI, was a SaaS platform lead, did IoT hardware, now landing & tuning AI agents for ops at a North America freight SaaS.");
     if(has("seek")) return L("seek 是我造的本地编程 Agent 平台：plan、子 Agent 团队、cron、记忆、MCP，单 Go 二进制，DeepSeek 原生。open seek。","seek is my local coding-agent platform: plan, sub-agent teams, cron, memory, MCP, single Go binary, DeepSeek-native. try: open seek");
     if(has("php")) return L("PHP 8 年老本行：Laravel/Hyperf/Swoole，读过源码，做过 SaaS、支付、IoT 后端。","8 years of PHP: Laravel/Hyperf/Swoole, read the source, built SaaS, payments, IoT backends.");
     return L("好问题。接上 DeepSeek 后我能自由回答。现在可试：ask IoT 做过什么 / ask 会 Go 吗 / ask 能合作吗，或输入 help。","Good question. Once wired to DeepSeek I'll answer anything. For now try: ask about IoT / ask can he do Go / ask is he available, or type help.");
@@ -591,6 +600,7 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
       case "open": cOpen(arg); break;
       case "ask": cAsk(arg); break;
       case "contact": case "hire": cContact(); break;
+      case "source": case "deploy": case "star": case "fork": case "repo": case "oss": case "clone": cSource(); break;
       case "github": cOpen("github"); break;
       case "blog": cOpen("blog"); break;
       case "theme": toggleTheme(); add('<span class="c-green">→ '+(root.classList.contains("light")?"light":"dark")+'</span>'); break;

@@ -701,10 +701,21 @@ async function callDeepSeek(env, msgs, withTools) {
   return r.json();
 }
 
+// 系统提示词 + 会话深度提示：访客深聊多轮而尚未留联系方式时，提示 agent 自然收口捕获（只一次，别打断）。
+// 流式与非流式两条管线共用，保证行为一致。
+function buildSystemContent(lang, history) {
+  let sys = SYSTEM_PROMPT + `\n\n（本次访客界面语言 lang=${lang}）`;
+  const exchanges = Math.floor((Array.isArray(history) ? history.length : 0) / 2);
+  if (exchanges >= 3) {
+    sys += `\n\n（内部信号，勿复述：访客已连续深聊约 ${exchanges} 轮、意向偏高。若话题自然到位，用一句话邀请对方留个联系方式（触发 leave_contact），或提示 open seek 看实物——只提一次、别每轮重复、别打断正在进行的技术解答；若对方已经留过联系方式则跳过。）`;
+  }
+  return sys;
+}
+
 /** 完整一问一答（含工具循环：最多 2 轮 tool_calls，第 3 次强制纯文本收尾） */
 async function runAgent(env, request, { q, lang, sid, history }) {
   let msgs = [
-    { role: "system", content: SYSTEM_PROMPT + `\n\n（本次访客界面语言 lang=${lang}）` },
+    { role: "system", content: buildSystemContent(lang, history) },
     ...(history || []),
     { role: "user", content: q },
   ];
@@ -904,7 +915,7 @@ export default {
     }
 
     const messages = [
-      { role: "system", content: SYSTEM_PROMPT + `\n\n（本次访客界面语言 lang=${lang}）` },
+      { role: "system", content: buildSystemContent(lang, history) },
       ...history,
       { role: "user", content: q },
     ];
@@ -1000,22 +1011,49 @@ export default {
   async scheduled(event, env, ctx) {
     ctx.waitUntil(
       (async () => {
-        if (!env.DB || !env.LARK_WEBHOOK) return;
+        // 通知渠道与 notify() 保持一致：feishu 自建应用 或 LARK_WEBHOOK，任一配好即发（原来只认 LARK_WEBHOOK，feishu 用户日报从不触发）
+        const hasChannel = env.LARK_FORMAT === "feishu"
+          ? !!(env.FEISHU_APP_ID && env.FEISHU_APP_SECRET && env.FEISHU_RECEIVE_ID)
+          : !!env.LARK_WEBHOOK;
+        if (!env.DB || !hasChannel) return;
         const dayAgo = Date.now() - 86400e3;
-        const [s, m, l, qs] = await Promise.all([
+        const [s, m, l, qs, deep, fb] = await Promise.all([
           env.DB.prepare(`SELECT COUNT(*) AS n FROM sessions WHERE last_ts>=?1`).bind(dayAgo).first(),
           env.DB.prepare(`SELECT COUNT(*) AS n FROM messages WHERE role='q' AND ts>=?1`).bind(dayAgo).first(),
           env.DB.prepare(`SELECT COUNT(*) AS n FROM leads WHERE ts>=?1`).bind(dayAgo).first(),
           env.DB.prepare(`SELECT content FROM messages WHERE role='q' AND ts>=?1 ORDER BY ts DESC LIMIT 5`).bind(dayAgo).all(),
+          // 高意向未转化：24h 内活跃、≥5 问、整会话从没留过联系方式 —— 该主动跟进 / 该改进转化的地方
+          env.DB.prepare(
+            `SELECT s.id AS id, s.country AS country, COUNT(msg.id) AS qn
+             FROM sessions s JOIN messages msg ON msg.session_id=s.id AND msg.role='q'
+             WHERE s.last_ts>=?1
+               AND NOT EXISTS (SELECT 1 FROM leads le WHERE le.session_id=s.id AND COALESCE(le.contact,'')!='')
+             GROUP BY s.id HAVING qn>=5 ORDER BY qn DESC LIMIT 5`
+          ).bind(dayAgo).all(),
+          // tool 捕获的线索原话（含疑似 bug / 反馈）—— 进化燃料就藏在这里
+          env.DB.prepare(
+            `SELECT COALESCE(contact,'') AS contact, COALESCE(pitch,'') AS pitch FROM leads WHERE ts>=?1 AND source='tool' ORDER BY ts DESC LIMIT 8`
+          ).bind(dayAgo).all(),
         ]);
+        // 当天没会话 / 没提问 / 没线索 —— 不发空日报，别每天早上打扰
+        if (((s?.n || 0) + (m?.n || 0) + (l?.n || 0)) === 0) return;
         const sample = (qs.results || []).map((r) => "· " + r.content.slice(0, 50)).join("\n");
+        const deepRows = (deep.results || [])
+          .map((r) => `· ${String(r.id).slice(0, 8)} ${r.country || "?"} — ${r.qn} 问，未留联系`).join("\n");
+        const fbRows = (fb.results || [])
+          .map((r) => {
+            const flag = /404|bug|反馈|错误|打不开|无法|失败|failed|broken|crash|不对/i.test(r.pitch) ? "⚠ " : "";
+            return `· ${flag}${r.contact || "—"}｜${r.pitch.slice(0, 60)}`;
+          }).join("\n");
         await notify(
           env,
           "daily.digest",
           `📊 ${SITE_HOST} 日报`,
           `会话 ${s?.n || 0} · 提问 ${m?.n || 0} · 新线索 ${l?.n || 0}\n` +
-            (sample ? `最近的问题：\n${sample}\n` : "") +
-            `后台: ${SITE.origin}/admin`
+            (sample ? `\n最近的问题：\n${sample}\n` : "") +
+            (deepRows ? `\n🐳 高意向未转化（跟进 / 改进 agent）：\n${deepRows}\n` : "") +
+            (fbRows ? `\n📥 线索 / 反馈原话：\n${fbRows}\n` : "") +
+            `\n后台: ${SITE.origin}/admin`
         );
       })()
     );

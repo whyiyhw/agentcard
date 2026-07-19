@@ -1,0 +1,4 @@
+# 不上传到边缘的文件（gitignore 语法）。wrangler 会自动排除 .assetsignore 本身。
+# macOS Finder 元数据，绝不该挂公网
+.DS_Store
+**/.DS_Store

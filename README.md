@@ -1,6 +1,6 @@
 # agentcard — 会接待访客的 AI 终端名片
 
-![version](https://img.shields.io/badge/version-0.0.1-brightgreen) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange) ![A2A](https://img.shields.io/badge/A2A-enabled-8A2BE2)
+[![live demo](https://img.shields.io/website?url=https%3A%2F%2Fask.whyiyhw.com&label=live&up_message=ask.whyiyhw.com&up_color=brightgreen&down_message=offline)](https://ask.whyiyhw.com) ![version](https://img.shields.io/badge/version-0.0.1-brightgreen) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-orange) ![A2A](https://img.shields.io/badge/A2A-enabled-8A2BE2) [![stars](https://img.shields.io/github/stars/whyiyhw/agentcard?style=social)](https://github.com/whyiyhw/agentcard)
 
 一张会替你**接待、筛选、转化**访客的 AI 名片。也是第一张能被别人的 agent 直接对话（**A2A**）的个人名片。
 
@@ -14,6 +14,10 @@
 
 ![agentcard demo — LED boot, whoami, ls, iot](docs/demo.gif)
 
+> ⭐ **喜欢就点亮一颗 star** —— 或干脆**造你自己的一张**。在 [live demo](https://ask.whyiyhw.com) 的终端里输 `source`（AI 会告诉你怎么部署），或直接跳到下面的 [**部署（约十分钟）**](#部署约十分钟)：改两个文件、`wrangler deploy`，这张 AI 名片就是你的。
+>
+> ⭐ **Like it? Star the repo** — or **build your own**: type `source` in the [live terminal](https://ask.whyiyhw.com), or jump to [**Deploy (~10 min)**](#部署约十分钟). Edit two files, `wrangler deploy`, and the card is yours.
+
 ## 能做什么
 
 - **可玩终端** — LED 点阵名字 + 启动动画 + 真命令行（`help`/`iot`/`ls`/`ask`…），深浅 / 中英切换，成就系统
@@ -25,7 +29,7 @@
 ## 玩法
 
 本地：`python3 -m http.server 8080` → http://localhost:8080（或直接双击 `index.html`）。
-终端命令：`help` · `whoami` · `skills` · `iot` · `ls` · `open seek` · `ask <问题>` · `theme` · `lang` · `clear`；支持 ↑/↓ 历史；`#demo` 自动演示。
+终端命令：`help` · `whoami` · `skills` · `iot` · `ls` · `open seek` · `ask <问题>` · `source`（⭐ 开源 / 部署你自己的）· `theme` · `lang` · `clear`；支持 ↑/↓ 历史；`#demo` 自动演示。
 
 ## 结构
 
