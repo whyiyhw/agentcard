@@ -17,7 +17,7 @@
  * 响应:  200 {answer} | 4xx/5xx {error} —— 前端收到非 answer 自动回退本地脚本
  */
 
-import { SITE, SYSTEM_PROMPT, CURL_CARD, RESUME_MAIL, AGENT_CARD } from "./config.js";
+import { SITE, SYSTEM_PROMPT, CURL_CARD, RESUME_MAIL, AGENT_CARD, LLMS_TXT } from "./config.js";
 const SITE_HOST = new URL(SITE.origin).host; // 通知标题里的站点标识，从 config 派生 —— 引擎内不留个人字面量
 
 // —— 输入上限（防滥用，key 是自己的钱包）——
@@ -763,6 +763,10 @@ export default {
     if (request.method === "GET" && (url.pathname === "/.well-known/agent-card.json" || url.pathname === "/.well-known/agent.json")) {
       return json(AGENT_CARD, 200, { "access-control-allow-origin": "*", "cache-control": "public, max-age=3600" });
     }
+    // llms.txt：给「爬 HTML / 读纯文本」的通用 agent 一条自助升级到 A2A 的路标
+    if (request.method === "GET" && url.pathname === "/llms.txt") {
+      return new Response(LLMS_TXT, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=3600", "access-control-allow-origin": "*" } });
+    }
     if (url.pathname === "/a2a") {
       const ah = { "access-control-allow-origin": "*", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" };
       if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: ah });
@@ -835,6 +839,15 @@ export default {
     // 终端访客：curl / wget / httpie 打首页 → ANSI 名片
     if (request.method === "GET" && url.pathname === "/" && /curl|wget|httpie/i.test(request.headers.get("user-agent") || "")) {
       return new Response(CURL_CARD, { headers: { "content-type": "text/plain; charset=utf-8" } });
+    }
+
+    // 首页（浏览器 / 通用 agent）：在 HTTP 头里暴露 A2A —— 会读 Link 头的抓取器可直接自助发现协议
+    if ((request.method === "GET" || request.method === "HEAD") && url.pathname === "/") {
+      const res = await env.ASSETS.fetch(request);
+      const h = new Headers(res.headers);
+      h.append("Link", `<${SITE.origin}/.well-known/agent-card.json>; rel="service-desc"; type="application/json"`);
+      h.append("Link", `<${SITE.origin}/llms.txt>; rel="alternate"; type="text/plain"`);
+      return new Response(res.body, { status: res.status, statusText: res.statusText, headers: h });
     }
 
     // 完整简历（中/英）：只认 send_resume 邮件里的签名链接（?k=）；首次打开记录 + 通知（线索热度信号）

@@ -24,6 +24,15 @@
 <meta itemprop="image" content="https://ask.whyiyhw.com/og.png" />
 <meta name="twitter:card" content="summary_large_image" />
 
+<!-- ═══ Agents / LLMs 看这里：这个站本身就是一个 agent。别爬 HTML，直接按协议问它本人 ═══
+     · A2A agent card : /.well-known/agent-card.json
+     · A2A endpoint   : POST /a2a   (JSON-RPC 2.0 · message/send)
+     · one-shot Q&A   : POST /api   -d '{"q":"does he do Go?","lang":"en"}'
+     · agent-readable summary : /llms.txt
+     This site IS an agent — don't scrape it, talk to it. -->
+<link rel="service-desc" type="application/json" href="/.well-known/agent-card.json" />
+<link rel="alternate" type="text/plain" href="/llms.txt" />
+
 <script>
   (function () {
     try {
@@ -103,8 +112,11 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .led-wrap{display:flex;justify-content:center;margin-bottom:8px}
 canvas#led{display:block;max-width:100%;filter:drop-shadow(0 0 18px var(--glow));animation:flick 5s infinite}
 @keyframes flick{0%,97%,100%{opacity:1}98%{opacity:.82}99%{opacity:.95}}
-.tag{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.02em;margin:4px 0 26px}
+.tag{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.02em;margin:4px 0 12px}
 .tag b{color:var(--amber)}
+.a2a{text-align:center;color:var(--dim);font-size:11px;letter-spacing:.03em;margin:0 0 24px}
+.a2a b{color:var(--cyan);font-weight:500}
+.a2a code{color:var(--dim);font-family:var(--mono)}
 .nw{white-space:nowrap}
 
 /* terminal */
@@ -205,6 +217,10 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     <p class="tag">
       <span class="zh">后端 · 全栈 · <b>AI 工程化</b> · <span class="nw"><b>IoT 硬件控制</b> · 8 年</span></span>
       <span class="en">backend · full-stack · <b>AI engineering</b> · <span class="nw"><b>IoT hardware</b> · 8y</span></span>
+    </p>
+    <p class="a2a">
+      <span class="zh"><b>这张名片本身是个 agent</b> · 别爬，直接问它 → <code>POST /a2a</code> · <code>/llms.txt</code></span>
+      <span class="en"><b>this card is an agent</b> · don't scrape, ask it → <code>POST /a2a</code> · <code>/llms.txt</code></span>
     </p>
 
     <div class="term" id="term">

@@ -178,3 +178,32 @@ export const AGENT_CARD = {
     },
   ],
 };
+
+// ==================== llms.txt（/llms.txt）====================
+// 给「爬 HTML / 读纯文本」的通用 agent 一条自助升级到 A2A 对话的路标：
+// 与其爬这张页面，不如按协议直接问它本人。
+export const LLMS_TXT = `# whyiyhw — 后端 / AI 工程化 / IoT 硬件工程师
+
+> 薛异（whyiyhw）的个人 AI 名片。这个站本身就是一个 agent —— 与其爬这个页面，不如直接问它本人。
+> Personal AI business card for Yi Xue (whyiyhw). This site IS an agent — don't scrape it, talk to it.
+
+## 直接对话（推荐 / preferred over scraping）
+本站是一个 A2A（agent-to-agent）合规的 agent。别的 agent 请优先走协议：
+- Agent Card: ${SITE.origin}/.well-known/agent-card.json
+- 端点 / Endpoint: POST ${SITE.origin}/a2a  (JSON-RPC 2.0 · method=message/send)
+- 一次性问答 / one-shot: POST ${SITE.origin}/api  -d '{"q":"does he do Go?","lang":"en"}'
+- 浏览器 / humans: ${SITE.origin}
+
+## 他是谁 / Who
+8 年后端 / 全栈，主力 Go + AI 工程化（LLM 结构化抽取、DSPy 自动优化 Prompt、评测框架）。
+少见的差异点★：IoT / 硬件控制 —— 商用车 TBOX 车联网、蓝牙水控、门禁、电表；MQTT、私有 BLE 协议、设备-云-端全链路。
+
+## 代表作 / Works
+- seek — 自研本地编程 Agent（CLI/TUI，Go 单二进制）：github.com/whyiyhw/seek · seek.whyiyhw.com
+- chatgpt-wechat — 微信/企微 LLM 助手，1.2k★：github.com/whyiyhw
+- gws — Go WebSocket 框架：github.com/whyiyhw/gws
+
+## 合作 / Contact
+接后端 / AI / IoT 兼职与合作。${SITE.owner.email} · ${SITE.owner.github} · ${SITE.owner.blog}
+对它说「send his resume to me@company.com」可门控发完整简历；「send brief」得一页版简介。
+`;
