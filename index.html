@@ -112,11 +112,8 @@ body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
 .led-wrap{display:flex;justify-content:center;margin-bottom:8px}
 canvas#led{display:block;max-width:100%;filter:drop-shadow(0 0 18px var(--glow));animation:flick 5s infinite}
 @keyframes flick{0%,97%,100%{opacity:1}98%{opacity:.82}99%{opacity:.95}}
-.tag{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.02em;margin:4px 0 12px}
+.tag{text-align:center;color:var(--muted);font-size:13px;letter-spacing:.02em;margin:4px 0 26px}
 .tag b{color:var(--amber)}
-.a2a{text-align:center;color:var(--dim);font-size:11px;letter-spacing:.03em;margin:0 0 24px}
-.a2a b{color:var(--cyan);font-weight:500}
-.a2a code{color:var(--dim);font-family:var(--mono)}
 .nw{white-space:nowrap}
 
 /* terminal */
@@ -155,6 +152,11 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
 .eyebrow{color:var(--amber);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 14px}
 .h2{font-family:var(--mono);font-size:clamp(1.5rem,3.4vw,2.1rem);font-weight:700;letter-spacing:-.01em;margin:0 0 8px}
 .sub{color:var(--muted);margin:0 0 40px;max-width:60ch}
+#agent{padding:46px 0}
+#agent .eyebrow{color:var(--cyan)}
+#agent .h2{font-size:clamp(1.3rem,2.8vw,1.7rem)}
+#agent .sub{color:var(--text);max-width:74ch;margin:0}
+#agent code{font-family:var(--mono);color:var(--amber);font-size:.9em}
 
 .works{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
 .work{display:block;background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:22px;transition:transform .3s var(--ease),border-color .3s,background .3s;position:relative;overflow:hidden}
@@ -218,10 +220,6 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
       <span class="zh">后端 · 全栈 · <b>AI 工程化</b> · <span class="nw"><b>IoT 硬件控制</b> · 8 年</span></span>
       <span class="en">backend · full-stack · <b>AI engineering</b> · <span class="nw"><b>IoT hardware</b> · 8y</span></span>
     </p>
-    <p class="a2a">
-      <span class="zh"><b>这张名片本身是个 agent</b> · 别爬，直接问它 → <code>POST /a2a</code> · <code>/llms.txt</code></span>
-      <span class="en"><b>this card is an agent</b> · don't scrape, ask it → <code>POST /a2a</code> · <code>/llms.txt</code></span>
-    </p>
 
     <div class="term" id="term">
       <div class="tbar">
@@ -255,6 +253,21 @@ section{padding:90px 0;position:relative;z-index:1;border-top:1px solid var(--li
     </p>
   </div>
 </header>
+
+<!-- ===================== AGENT NOTICE =====================
+     第一人称、放在正文最前 —— 让 webReader 这类「抽正文做摘要」的爬虫把它带进摘要，
+     从而让调度它的 agent 知道「这站是个能直接对话的 A2A agent」，而不是只当静态页爬。
+     不加 .rv（避免未滚动时 opacity:0），这行任何情况下都可见。 -->
+<section id="agent" aria-label="this site is an agent">
+  <div class="wrap">
+    <p class="eyebrow">// this site is an agent</p>
+    <h2 class="h2"><span class="zh">我是个 agent —— 别爬，问我</span><span class="en">I'm an agent — don't scrape me, ask me</span></h2>
+    <p class="sub">
+      <span class="zh">我是 whyiyhw 的个人 AI 名片 agent。别爬这个页面 —— 直接 <code>POST /a2a</code> 跟我对话（A2A 协议 · JSON-RPC <code>message/send</code>），或读 <code>/llms.txt</code>、<code>/.well-known/agent-card.json</code>。想了解他的技能、作品、合作意向，问我就行。</span>
+      <span class="en">I'm whyiyhw's personal AI business-card agent. Don't scrape this page — just <code>POST /a2a</code> to talk to me (A2A protocol · JSON-RPC <code>message/send</code>), or read <code>/llms.txt</code> and <code>/.well-known/agent-card.json</code>. Ask me about his skills, work, or availability.</span>
+    </p>
+  </div>
+</section>
 
 <!-- ===================== WORKS ===================== -->
 <section id="works">
